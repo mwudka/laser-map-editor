@@ -1,3 +1,10 @@
+module DOM = Webapi.Dom
+module Doc = Webapi.Dom.Document
+module Elem = Webapi.Dom.Element
+module HtmlElem = Webapi.Dom.HtmlElement
+module InputElem = Webapi.Dom.HtmlInputElement
+module EvtTarget = Webapi.Dom.EventTarget
+
 type objectPropertyGetter = {
     "get": () => float
 }
@@ -163,13 +170,21 @@ map->on("load", () => {
     }
 
     map->onClick("click", e => {
-        let _ = map
+        let nearbyFeatureNames = map
             ->querySourceFeatures("composite", {sourceLayer: "poi_label"})
             ->Js.Array2.map(poi => {
-                // if poi.properties.name === "Ramona Gardens Park" {
-                    createFeature(poi.properties.name, poi.geometry.coordinates)
-                // }
+                // createFeature(poi.properties.name, poi.geometry.coordinates)
+                poi.properties.name
             })
+            ->Js.Array2.joinWith(",")
+            
+        
+
+        newPopup({ closeOnClick: false })
+            ->setLngLat(e.lngLat->toArray)
+            ->setHTML(nearbyFeatureNames)
+            ->addTo(map)
+
         
 
         let feature = map

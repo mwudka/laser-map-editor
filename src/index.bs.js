@@ -118,51 +118,53 @@ map.on("load", (function (param) {
               }
             });
         var createdFeatures = [];
-        var createFeature = function (name, coordinates) {
-          var imageId = nextImageId.contents;
-          nextImageId.contents = imageId + 1 | 0;
-          var newImageName = "image-" + imageId;
-          map.addImage(newImageName, generateTextImage(name));
-          var newFeature = {
-            type: "Feature",
-            properties: {
-              description: name,
-              "text-image": newImageName,
-              rotation: 0,
-              offset: 10,
-              offsetEM: [
-                10,
-                10
-              ],
-              offsetPX: [
-                0,
-                0
-              ],
-              "icon-size": 1.0 / devicePixelRatio
-            },
-            geometry: {
-              type: "Point",
-              coordinates: coordinates
-            }
-          };
-          createdFeatures.push(newFeature);
-          map.getSource("places").setData({
-                type: "FeatureCollection",
-                features: createdFeatures
-              });
-          
-        };
         map.on("click", (function (e) {
-                map.querySourceFeatures("composite", {
-                        sourceLayer: "poi_label"
-                      }).map(function (poi) {
-                      return createFeature(poi.properties.name, poi.geometry.coordinates);
-                    });
+                var nearbyFeatureNames = map.querySourceFeatures("composite", {
+                          sourceLayer: "poi_label"
+                        }).map(function (poi) {
+                        return poi.properties.name;
+                      }).join(",");
+                new mapboxgl.Popup({
+                            closeOnClick: false
+                          }).setLngLat(e.lngLat.toArray()).setHTML(nearbyFeatureNames).addTo(map);
                 var feature = map.queryRenderedFeatures(e.point).filter(function (f) {
                         return f.type === "Feature";
                       }).shift();
                 if (feature !== undefined) {
-                  return createFeature(feature.properties.name, e.lngLat.toArray());
+                  var name = feature.properties.name;
+                  var coordinates = e.lngLat.toArray();
+                  var imageId = nextImageId.contents;
+                  nextImageId.contents = imageId + 1 | 0;
+                  var newImageName = "image-" + imageId;
+                  map.addImage(newImageName, generateTextImage(name));
+                  var newFeature = {
+                    type: "Feature",
+                    properties: {
+                      description: name,
+                      "text-image": newImageName,
+                      rotation: 0,
+                      offset: 10,
+                      offsetEM: [
+                        10,
+                        10
+                      ],
+                      offsetPX: [
+                        0,
+                        0
+                      ],
+                      "icon-size": 1.0 / devicePixelRatio
+                    },
+                    geometry: {
+                      type: "Point",
+                      coordinates: coordinates
+                    }
+                  };
+                  createdFeatures.push(newFeature);
+                  map.getSource("places").setData({
+                        type: "FeatureCollection",
+                        features: createdFeatures
+                      });
+                  return ;
                 }
                 
               }));
@@ -173,7 +175,25 @@ map.on("load", (function (param) {
         
       }));
 
+var DOM;
+
+var Doc;
+
+var Elem;
+
+var HtmlElem;
+
+var InputElem;
+
+var EvtTarget;
+
 export {
+  DOM ,
+  Doc ,
+  Elem ,
+  HtmlElem ,
+  InputElem ,
+  EvtTarget ,
   devicePixelRatio ,
   saveImage ,
   bounds$1 as bounds,

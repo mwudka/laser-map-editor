@@ -37,7 +37,15 @@ type feature = {
 }
 type mapSource
 type mapboxBoundingBox
+type popup
+type popupConfig = {
+    closeOnClick: bool
+}
+@bs.new external newPopup: popupConfig => popup = "mapboxgl.Popup"
 @bs.new external newMap: mapConfig => map = "mapboxgl.Map"
+@bs.send external setLngLat: (popup, lonlat) => popup = "setLngLat"
+@bs.send external setHTML: (popup, string) => popup = "setHTML"
+@bs.send external addTo: (popup, map) => () = "addTo"
 @bs.send external addControl: (map, geocoder) => () = "addControl"
 @bs.send external queryRenderedFeatures: (map, xy) => array<feature> = "queryRenderedFeatures"
 @bs.send external on: (map, string, () => ()) => () = "on"
