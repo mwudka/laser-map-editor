@@ -1,19 +1,14 @@
 {
-  "name": "laser-map-editor",
-  "version": "1.0.0",
-  "description": "",
-  "main": "index.js",
+  "private": true,
   "scripts": {
-    "build": "bsb -make-world",
-    "clean": "bsb -clean-world",
-    "start": "bsb -make-world -w"
-  },
-  "author": "",
-  "license": "ISC",
-  "devDependencies": {
-    "bs-platform": "^8.4.2"
+    "start": "webpack-dev-server"
   },
   "dependencies": {
-    "bs-webapi": "^0.19.1"
+    "@babel/core": "^7.8.4",
+    "fable-compiler": "^2.4.15",
+    "fable-loader": "^2.1.8",
+    "webpack": "^4.41.6",
+    "webpack-cli": "^3.3.11",
+    "webpack-dev-server": "^3.11.1"
   }
 }
