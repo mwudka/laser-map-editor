@@ -54,7 +54,8 @@ type addImageOptions = {
     content: (int, int, int, int),
     pixelRatio: int
 }
-@bs.send external addImage: (map, string, 'a, addImageOptions) => () = "addImage"
+@bs.send external addImageWithOptions: (map, string, 'a, addImageOptions) => () = "addImage"
+@bs.send external addImage: (map, string, 'a) => () = "addImage"
 @bs.send external getBounds: (map) => (mapboxBoundingBox) = "getBounds"
 @bs.send external boundingBoxToArray: (mapboxBoundingBox) => array<float> = "toArray"
 
@@ -64,3 +65,5 @@ type querySourceFeaturesFilter = {
 @bs.send external querySourceFeatures: (map, string, querySourceFeaturesFilter) => array<feature> = "querySourceFeatures"
 
 @bs.val external mapboxgl: 'a = "mapboxgl"
+
+@bs.send external getContext: ('a, string) => 'a = "getContext"

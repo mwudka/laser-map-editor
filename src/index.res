@@ -1,11 +1,13 @@
 type objectPropertyGetter = {
-    "get": () => int
+    "get": () => float
 }
 
 @bs.scope("Object") @bs.val external defineObjectProperty: ('a, string, objectPropertyGetter) => () = "defineProperty"
 
+let devicePixelRatio = 300.0 /. 96.0
+
 defineObjectProperty(Webapi.Dom.window, "devicePixelRatio", {
-    "get": () => 300 / 96
+    "get": () => devicePixelRatio
 })
 
 
@@ -13,8 +15,14 @@ defineObjectProperty(Webapi.Dom.window, "devicePixelRatio", {
 @bs.val external window: 'a = "window"
 @bs.val external setTimeout: (unit => unit, int) => float = "setTimeout"
 @bs.val external localStorage: 'a = "localStorage"
+@bs.send external getContext: ('a, string) => 'a = "getContext"
+@bs.send external createElement: ('a, string) => 'a = "createElement"
+@bs.send external getImageData: ('a, int, int, int, int) => 'a = "getImageData"
+@bs.send external fillText: ('a, string, float, float) => () = "fillText"
+@bs.send external toDataURL: 'a => string = "toDataURL"
+@bs.send external appendChild: ('a, 'a) => () = "appendChild"
 
-
+@bs.val external roundRect: ('a, int, int, int, int, int, bool, bool) => () = "roundRect"
 
 let saveImage = () => {
     let dataURL: string = document["getElementsByTagName"]("canvas")["0"]["toDataURL"]()
@@ -50,25 +58,6 @@ let bounds = switch Js.Nullable.toOption(savedBoundingBox) {
     | Some(bounds) => parseJsonBoundingBox(bounds)
 }
 
-%%raw(`
-var width = 64; // The image will be 64 pixels square
-var bytesPerPixel = 4; // Each pixel is represented by 4 bytes: red, green, blue, and alpha.
-var data = new Uint8Array(width * width * bytesPerPixel);
- 
-for (var x = 0; x < width; x++) {
-for (var y = 0; y < width; y++) {
-var offset = (y * width + x) * bytesPerPixel;
-data[offset + 0] = 255;
-data[offset + 1] = 0;
-data[offset + 2] = 0;
-data[offset + 3] = 255; // alpha
-}
-}
-var generatedImage = { width: width, height: width, data: data }
-`)
-
-@bs.val external generatedImage: 'a = "generatedImage"
-
 mapboxgl["accessToken"] = "pk.eyJ1IjoibXd1ZGthIiwiYSI6ImNraXhva29veDBtd3Mycm0wMTVtMmx4dXoifQ._3QauG82dcJHW7pNWU4aoA"
 
 let map = newMap({
@@ -84,24 +73,30 @@ map->addControl(newGeocoder({
     mapboxgl: mapboxgl
 }))
 
+let generateTextImage = text => {
+    let canvasEl = document["createElement"]("canvas")
+    canvasEl["width"] = 1000
+    canvasEl["height"] = 1000
+    let context = canvasEl->getContext("2d")
+    context["font"] = "30px serif";
+    context["textBaseline"] = "middle"
+    let metrics = context["measureText"](text)
+    let height = 20 + metrics["actualBoundingBoxAscent"] + metrics["actualBoundingBoxDescent"]
+    let radius = 20
+
+    context["fillStyle"] = "white"
+    roundRect(context, 0, 0, metrics["width"] + radius * 2, height, radius, true, false)
+
+    context["fillStyle"] = "black"
+    context["fillText"](text, radius, metrics["actualBoundingBoxAscent"] + radius / 2)
+
+
+    context->getImageData(0, 0, metrics["width"] + radius * 2, height)
+}
+
+let nextImageId = ref(0)
+
 map->on("load", () => {
-    map->loadImage("https://docs.mapbox.com/mapbox-gl-js/assets/popup.png", (_, image) => {
-        Js.log("image loaded")
-        map->addImage("text-label-background", image, {
-            stretchX: ((25, 55), (85, 115)),
-            stretchY: [(25, 100)],
-            content: (25, 25, 115, 100),
-            pixelRatio: 2
-        })
-    })
-
-    // map->addImage("text-label-background", generatedImage, {
-    //     stretchX: ((10, 20), (30, 63)),
-    //     stretchY: [(10, 20)],
-    //     content: (20, 10, 30, 20),
-    //     pixelRatio: 1
-    // })
-
     map->addSource("places", {
         "type": "geojson",
         "data": {
@@ -115,16 +110,17 @@ map->on("load", () => {
         "type": "symbol",
         "source": "places",
         "layout": {
-            "text-field": ["get", "description"],
-            "text-justify": "auto",
-            "text-rotate": ["get", "rotation"],
+            // "text-field": ["get", "description"],
+            // "text-justify": "auto",
+            // "text-rotate": ["get", "rotation"],
             "icon-rotate": ["get", "rotation"],
-            "text-offset": ["get", "offsetEM"],
-            "icon-offset": ["get", "offsetEM"],
-            "icon-text-fit": "both",
-            "icon-image": ["literal", "text-label-background"],
+            "icon-size": ["get", "icon-size"],
+            // "text-offset": ["get", "offsetEM"],
+            // "icon-offset": ["get", "offsetPX"],
+            // "icon-text-fit": "both",
+            "icon-image": ["get", "text-image"],
             "icon-allow-overlap": true,
-            "text-allow-overlap": true
+            // "text-allow-overlap": true
         },
         "paint": {
             "text-color": "#000000",
@@ -134,12 +130,24 @@ map->on("load", () => {
     let createdFeatures = []
 
     let createFeature = (name: string, coordinates: lngLat) => {
+
+        let imageId = nextImageId.contents
+        nextImageId := imageId + 1
+
+        let newImageName = j`image-$imageId`
+
+        map->addImage(newImageName, generateTextImage(name))
+
         let newFeature = {
             "type": "Feature",
             "properties": {
-                "description": name
+                "description": name,
+                "text-image": newImageName,
                 "rotation": 0,
-                "offsetEM": [0, 0]
+                "offset": 10,
+                "offsetEM": [10, 10],
+                "offsetPX": [0, 0],
+                "icon-size": 1.0 /. devicePixelRatio
             },
             "geometry": {
                 "type": "Point",
