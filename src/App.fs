@@ -7,6 +7,8 @@ open Mapbox
 open Mapbox.Mapboxgl
 open JsInterop
 open App.URL
+open App.Geo
+
 
 open MapboxGeocoder
 
@@ -91,28 +93,23 @@ map.on
          ))
 |> ignore
 
-
-let extractName: (MapboxGeoJSONFeature -> string) = fun feature -> feature?properties?name
-
 let isFeature: (MapboxGeoJSONFeature -> bool) =
     fun feature -> feature?``type`` = "Feature"
 
 // From https://stackoverflow.com/questions/1255512/how-to-draw-a-rounded-rectangle-on-html-canvas
 let roundRect (ctx: CanvasRenderingContext2D, x: float, y: float, width: float, height: float, radius: float) =
-    ctx.beginPath()
-    ctx.moveTo(x + radius, y)
-    ctx.lineTo(x + width - radius, y);
-    ctx.quadraticCurveTo(x + width, y, x + width, y + radius);
-    ctx.lineTo(x + width, y + height - radius);
-    ctx.quadraticCurveTo(x + width, y + height, x + width - radius, y + height);
-    ctx.lineTo(x + radius, y + height);
-    ctx.quadraticCurveTo(x, y + height, x, y + height - radius);
-    ctx.lineTo(x, y + radius);
-    ctx.quadraticCurveTo(x, y, x + radius, y);
-    ctx.closePath()
-    ctx.fill()
-//let roundRect: (CanvasRenderingContext2D, int, int, int, int, int -> unit) =
-//    fun context x y width height radius -> ctx.beginPath()
+    ctx.beginPath ()
+    ctx.moveTo (x + radius, y)
+    ctx.lineTo (x + width - radius, y)
+    ctx.quadraticCurveTo (x + width, y, x + width, y + radius)
+    ctx.lineTo (x + width, y + height - radius)
+    ctx.quadraticCurveTo (x + width, y + height, x + width - radius, y + height)
+    ctx.lineTo (x + radius, y + height)
+    ctx.quadraticCurveTo (x, y + height, x, y + height - radius)
+    ctx.lineTo (x, y + radius)
+    ctx.quadraticCurveTo (x, y, x + radius, y)
+    ctx.closePath ()
+    ctx.fill ()
 
 let generateTextImage text =
     let canvasEl: HTMLCanvasElement = !! document.createElement ("canvas")
@@ -129,8 +126,8 @@ let generateTextImage text =
         + metrics?actualBoundingBoxDescent
 
     context2D.fillStyle <- !^ "white"
-    roundRect(context2D, 0.0, 0.0, metrics.width + 40.0, height, 20.0)
-    
+    roundRect (context2D, 0.0, 0.0, metrics.width + 40.0, height, 20.0)
+
     context2D.fillStyle <- !^ "black"
     context2D.fillText (text, 20.0, metrics?actualBoundingBoxAscent + 10.0)
     context2D.getImageData (0.0, 0.0, metrics.width + 40.0, height)
@@ -138,29 +135,29 @@ let generateTextImage text =
 let mutable createdFeatures = []
 let mutable nextImageId = 0
 
-let [<Global>] devicePixelRatio: float = jsNative
+[<Global>]
+let devicePixelRatio: float = jsNative
 
-let createFeature coordinates feature =
+let createFeature (coordinates: (float * float)) feature =
     let featureName = extractName feature
 
     let imageId = nextImageId
     nextImageId <- nextImageId + 1
     let newImageName = sprintf "image-%i" imageId
 
-    map.addImage (newImageName, !^(generateTextImage featureName)) |> ignore
+    map.addImage (newImageName, !^(generateTextImage featureName))
+    |> ignore
 
     let newFeature =
         {| ``type`` = "Feature"
            geometry =
                {| ``type`` = "Point"
-                  coordinates = coordinates?toArray() |}
+                  coordinates = coordinates |}
                |> toPlainJsObj
            properties =
-               {|
-                  ``text-image`` = newImageName
+               {| ``text-image`` = newImageName
                   rotation = 0
-                  ``icon-size`` = 1.0 / devicePixelRatio
-                   |}
+                  ``icon-size`` = 1.0 / devicePixelRatio |}
                |> toPlainJsObj |}
         |> toPlainJsObj
 
@@ -181,27 +178,23 @@ map.on
      (fun (e: Option<obj>) ->
          let clickEvent: MapMouseEvent = !! Option.get (e)
 
-         let nearbyFeatureNames =
+         let nearbyFeatures: seq<MapboxGeoJSONFeature> =
              !!(map.querySourceFeatures ("composite", {| sourceLayer = "poi_label" |}))
-             |> Seq.map extractName
-             |> String.concat ", "
+
+         let clickedFeatures =
+             map.queryRenderedFeatures (!^ !^clickEvent.point)
+             |> Seq.filter isFeature
+
+         let poiSelectorNode =
+             App.UI.poiSelector (createFeature) clickEvent.lngLat nearbyFeatures clickedFeatures
 
          mapboxgl
              .Popup
              .Create(jsOptions<PopupOptions> (fun opts -> opts.closeOnClick <- Some(false)))
              .setLngLat(!^clickEvent.lngLat)
-             .setHTML(nearbyFeatureNames)
+             .setDOMContent(poiSelectorNode)
              .addTo(map)
          |> ignore
-
-         let feature =
-             map.queryRenderedFeatures (!^ !^clickEvent.point)
-             |> Seq.filter isFeature
-             |> Seq.tryHead
-
-         match feature with
-         | None -> ()
-         | Some (feature) -> createFeature clickEvent.lngLat feature |> ignore
 
          ))
 |> ignore
@@ -210,16 +203,3 @@ map.on
 window.addEventListener
     ("unload",
      (fun _ -> window.localStorage.setItem (localStorageBoundingBoxKey, JSON.stringify (map.getBounds().toArray()))))
-
-//open Browser.Dom
-//
-//// Mutable variable to count the number of times we clicked the button
-//let mutable count = 0
-//
-//// Get a reference to our button and cast the Element to an HTMLButtonElement
-//let myButton = document.querySelector(".my-button") :?> Browser.Types.HTMLButtonElement
-//
-//// Register our listener
-//myButton.onclick <- fun _ ->
-//    count <- count + 1
-//    myButton.innerText <- sprintf "You clicked: %i time%s" count (if count = 1 then "" else "s")
