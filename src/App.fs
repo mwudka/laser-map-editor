@@ -152,7 +152,7 @@ let createFeature (coordinates: LngLat) feature =
         {| ``type`` = "Feature"
            geometry =
                {| ``type`` = "Point"
-                  coordinates = coordinates.toArray() |}
+                  coordinates = coordinates.toArray () |}
                |> toPlainJsObj
            properties =
                {| ``text-image`` = newImageName
@@ -169,8 +169,6 @@ let createFeature (coordinates: LngLat) feature =
         !!({| ``type`` = "FeatureCollection"
               features = Seq.toArray createdFeatures |}
            |> toPlainJsObj)
-        
-    console.log(newData)
 
     source.setData (!^newData)
 
@@ -189,13 +187,13 @@ map.on
          let popup =
              mapboxgl
                  .Popup
-                 .Create(jsOptions<PopupOptions> (fun opts -> opts.closeOnClick <- Some(false)))
+                 .Create(jsOptions<PopupOptions> (fun opts -> opts.closeOnClick <- Some(true)))
                  .setLngLat(!^clickEvent.lngLat)
                  .addTo(map)
-                 
+
          let createFeatureAndRemoveFunction a b =
              createFeature a b |> ignore
-             popup.remove()
+             popup.remove ()
 
          let poiSelectorNode =
              App.UI.poiSelector (createFeatureAndRemoveFunction) clickEvent.lngLat nearbyFeatures clickedFeatures
