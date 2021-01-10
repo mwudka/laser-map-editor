@@ -170,7 +170,6 @@ let createFeature (coordinates: (float * float)) feature =
               features = Seq.toArray createdFeatures |}
            |> toPlainJsObj)
 
-    console.log (source, newData)
     source.setData (!^newData)
 
 map.on
@@ -185,18 +184,21 @@ map.on
              map.queryRenderedFeatures (!^ !^clickEvent.point)
              |> Seq.filter isFeature
 
+         let popup =
+             mapboxgl
+                 .Popup
+                 .Create(jsOptions<PopupOptions> (fun opts -> opts.closeOnClick <- Some(false)))
+                 .setLngLat(!^clickEvent.lngLat)
+                 .addTo(map)
+                 
+         let createFeatureAndRemoveFunction a b =
+             createFeature a b |> ignore
+             popup.remove()
+
          let poiSelectorNode =
-             App.UI.poiSelector (createFeature) clickEvent.lngLat nearbyFeatures clickedFeatures
+             App.UI.poiSelector (createFeatureAndRemoveFunction) clickEvent.lngLat nearbyFeatures clickedFeatures
 
-         mapboxgl
-             .Popup
-             .Create(jsOptions<PopupOptions> (fun opts -> opts.closeOnClick <- Some(false)))
-             .setLngLat(!^clickEvent.lngLat)
-             .setDOMContent(poiSelectorNode)
-             .addTo(map)
-         |> ignore
-
-         ))
+         popup.setDOMContent (poiSelectorNode) |> ignore))
 |> ignore
 
 
