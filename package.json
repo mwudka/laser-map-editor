@@ -2,20 +2,20 @@
   "private": true,
   "scripts": {
     "start": "webpack-dev-server",
-    "types": "ts2fable node_modules/@types/mapbox-gl/index.d.ts src/Mapbox.fs"
+    "build": "webpack"
   },
   "dependencies": {
+    "mapbox-gl": "^2.0.1"
+  },
+  "devDependencies": {
+    "@types/mapbox-gl": "^2.0.1",
+    "ts2fable": "^0.8.0-build.557",
     "@babel/core": "^7.8.4",
     "@mapbox/mapbox-gl-geocoder": "^4.7.0",
     "fable-compiler": "^2.4.15",
     "fable-loader": "^2.1.8",
-    "mapbox-gl": "^2.0.1",
     "webpack": "^4.41.6",
     "webpack-cli": "^3.3.11",
     "webpack-dev-server": "^3.11.1"
-  },
-  "devDependencies": {
-    "@types/mapbox-gl": "^2.0.1",
-    "ts2fable": "^0.8.0-build.557"
   }
 }
