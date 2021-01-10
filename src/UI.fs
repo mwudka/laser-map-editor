@@ -1,8 +1,7 @@
 module App.UI
 
-open Fable.Core
 open Mapbox.Mapboxgl
-open JsInterop
+open FSharp.Data.UnitSystems.SI.UnitNames
 
 let document = Browser.Dom.document
 let console = Browser.Dom.console
@@ -11,7 +10,7 @@ let potentialPOIButton (clickedLocation: LngLat) createFeature (feature: MapboxG
     let link = document.createElement ("a")
 
     let newFeatureLocation =
-        defaultArg (Geo.extractPoint (feature)) (!! clickedLocation.toArray ())
+        defaultArg (Geo.extractPoint (feature)) clickedLocation
 
     link.onclick <- fun _ -> createFeature newFeatureLocation feature
     link.setAttribute ("href", "#")
@@ -28,7 +27,13 @@ let poiSelector createFeature
     let ul = document.createElement ("ul")
     ul.className <- "poi-selector"
 
+    let distanceToClickedLocation feature =
+        match Geo.extractPoint feature with
+        | Some (ll) -> clickedLocation.distanceTo (ll)
+        | None -> 0.0<meter>
+
     Seq.concat ([ clickedFeatures; nearbyFeatures ])
+    |> Seq.sortBy distanceToClickedLocation
     |> Seq.map (potentialPOIButton clickedLocation createFeature)
     |> Seq.iter (fun f -> ul.appendChild f |> ignore)
 

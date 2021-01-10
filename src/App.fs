@@ -138,7 +138,7 @@ let mutable nextImageId = 0
 [<Global>]
 let devicePixelRatio: float = jsNative
 
-let createFeature (coordinates: (float * float)) feature =
+let createFeature (coordinates: LngLat) feature =
     let featureName = extractName feature
 
     let imageId = nextImageId
@@ -152,7 +152,7 @@ let createFeature (coordinates: (float * float)) feature =
         {| ``type`` = "Feature"
            geometry =
                {| ``type`` = "Point"
-                  coordinates = coordinates |}
+                  coordinates = coordinates.toArray() |}
                |> toPlainJsObj
            properties =
                {| ``text-image`` = newImageName
@@ -169,6 +169,8 @@ let createFeature (coordinates: (float * float)) feature =
         !!({| ``type`` = "FeatureCollection"
               features = Seq.toArray createdFeatures |}
            |> toPlainJsObj)
+        
+    console.log(newData)
 
     source.setData (!^newData)
 

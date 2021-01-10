@@ -4,7 +4,7 @@ open System
 open Fable.Core
 open Fable.Core.JS
 open Browser.Types
-
+open FSharp.Data.UnitSystems.SI
 
 [<Erase>] type KeyOf<'T> = Key of string
 type Array<'T> = System.Collections.Generic.IList<'T>
@@ -1017,7 +1017,7 @@ module Mapboxgl =
         abstract toString: unit -> string
         /// Returns the approximate distance between a pair of coordinates in meters
         /// Uses the Haversine Formula (from R.W. Sinnott, "Virtues of the Haversine", Sky and Telescope, vol. 68, no. 2, 1984, p. 159)
-        abstract distanceTo: lngLat: LngLat -> float
+        abstract distanceTo: lngLat: LngLat -> float<UnitNames.meter>
         abstract toBounds: radius: float -> LngLatBounds
 
     /// LngLat
