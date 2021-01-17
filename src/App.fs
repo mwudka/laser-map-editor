@@ -148,7 +148,6 @@ let refreshMapSource =
                   features = Seq.toArray createdFeatures |}
                |> toPlainJsObj)
 
-        console.log ("Refreshed map source", newData)
         source.setData (!^newData) |> ignore
 
 let createFeature (coordinates: LngLat) feature =
@@ -194,6 +193,37 @@ let updateFeature (id) (newText: string) (newRotation: int) =
     |> ignore
 
     refreshMapSource ()
+
+let mutable movingFeatureId: string = ""
+
+let onMove =
+    (fun (e: obj option) ->
+        let e: MapMouseEvent = !!e
+        
+        let updatedFeature =
+            createdFeatures
+            |> List.find (fun feature -> feature?properties?id = movingFeatureId)
+        updatedFeature?geometry?coordinates <- e.lngLat.toArray()
+
+        refreshMapSource ()
+        )
+
+let onUp =
+    (fun (e: obj option) -> map.off ("mousemove", onMove) |> ignore)
+
+map.on
+    ("mousedown",
+     "poi-labels",
+     (fun (e: obj) ->
+         let e: MapMouseEvent = !!e
+         movingFeatureId <- e?features.Item("0")?properties?id
+         
+         e.preventDefault ()
+         map.on ("mousemove", onMove) |> ignore
+         map.once ("mouseup", onUp) |> ignore
+
+         ))
+|> ignore
 
 map.on
     ("click",
