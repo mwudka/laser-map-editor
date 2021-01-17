@@ -1,7 +1,16 @@
 module App.UI
 
+open Browser.Types
+open Fable.Core
 open Mapbox.Mapboxgl
 open FSharp.Data.UnitSystems.SI.UnitNames
+open JsInterop
+open Fable.Core.DynamicExtensions
+open Browser.Types
+open Fable.Core
+open Fable.Core.JS
+open Fable.Core.JsInterop
+
 
 let document = Browser.Dom.document
 let console = Browser.Dom.console
@@ -38,3 +47,35 @@ let poiSelector createFeature
     |> Seq.iter (fun f -> ul.appendChild f |> ignore)
 
     ul
+
+let poiEditor (feature: GeoJSON.Feature<GeoJSON.Point>) (performUpdate: (string -> string -> int -> unit)) =
+    let form: HTMLFormElement = !! document.createElement ("form")
+
+
+
+    let textEl: HTMLInputElement = !! document.createElement ("input")
+    textEl.name <- "text-content"
+    textEl.value <- !!feature.properties.Item("text-content")
+    form.appendChild (textEl) |> ignore
+
+    let rotationEl: HTMLInputElement = !! document.createElement ("input")
+    rotationEl.name <- "rotation"
+    rotationEl.value <- !!feature.properties.Item("rotation")
+    rotationEl.``type`` <- "number"
+    rotationEl.min <- "0"
+    rotationEl.max <- "360"
+    form.appendChild (rotationEl) |> ignore
+
+    let submit: HTMLInputElement = !! document.createElement ("input")
+    submit.``type`` <- "submit"
+    form.appendChild (submit) |> ignore
+
+    form.onsubmit <-
+        (fun (e: Event) ->
+            e.preventDefault ()
+            performUpdate feature.properties?id textEl.value !!(parseInt rotationEl.value))
+    //    form.addEventListener ("submit", (fun (e: Event) -> console.log ("Submitify")))
+
+
+
+    form

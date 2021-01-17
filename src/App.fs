@@ -8,6 +8,7 @@ open Mapbox.Mapboxgl
 open JsInterop
 open App.URL
 open App.Geo
+open Fable.Core.DynamicExtensions
 
 
 open MapboxGeocoder
@@ -138,6 +139,18 @@ let mutable nextImageId = 0
 [<Global>]
 let devicePixelRatio: float = jsNative
 
+let refreshMapSource =
+    fun () ->
+        let source: GeoJSONSource = !! map.getSource ("places")
+
+        let newData: GeoJSON.FeatureCollection<GeoJSON.Geometry> =
+            !!({| ``type`` = "FeatureCollection"
+                  features = Seq.toArray createdFeatures |}
+               |> toPlainJsObj)
+
+        console.log ("Refreshed map source", newData)
+        source.setData (!^newData) |> ignore
+
 let createFeature (coordinates: LngLat) feature =
     let featureName = extractName feature
 
@@ -155,7 +168,9 @@ let createFeature (coordinates: LngLat) feature =
                   coordinates = coordinates.toArray () |}
                |> toPlainJsObj
            properties =
-               {| ``text-image`` = newImageName
+               {| id = imageId
+                  ``text-content`` = featureName
+                  ``text-image`` = newImageName
                   rotation = 0
                   ``icon-size`` = 1.0 / devicePixelRatio |}
                |> toPlainJsObj |}
@@ -163,42 +178,82 @@ let createFeature (coordinates: LngLat) feature =
 
 
     createdFeatures <- newFeature :: createdFeatures
-    let source: GeoJSONSource = !! map.getSource ("places")
+    refreshMapSource ()
 
-    let newData: GeoJSON.FeatureCollection<GeoJSON.Geometry> =
-        !!({| ``type`` = "FeatureCollection"
-              features = Seq.toArray createdFeatures |}
-           |> toPlainJsObj)
+let updateFeature (id) (newText: string) (newRotation: int) =
+    let updatedFeature =
+        createdFeatures
+        |> List.find (fun feature -> feature?properties?id = id)
 
-    source.setData (!^newData)
+    updatedFeature?properties?rotation <- newRotation
+
+    let imageName = updatedFeature?properties?``text-image``
+    map.removeImage (imageName) |> ignore
+
+    map.addImage (imageName, !^(generateTextImage newText))
+    |> ignore
+
+    refreshMapSource ()
 
 map.on
     ("click",
-     (fun (e: Option<obj>) ->
-         let clickEvent: MapMouseEvent = !! Option.get (e)
-
-         let nearbyFeatures: seq<MapboxGeoJSONFeature> =
-             !!(map.querySourceFeatures ("composite", {| sourceLayer = "poi_label" |}))
-
-         let clickedFeatures =
-             map.queryRenderedFeatures (!^ !^clickEvent.point)
-             |> Seq.filter isFeature
+     "poi-labels",
+     (fun (e: obj) ->
+         let clickEvent: MapMouseEvent = !!e
+         clickEvent.originalEvent.cancelBubble <- true
+         let feature: GeoJSON.Feature<GeoJSON.Point, GeoJSON.GeoJsonProperties> = !!clickEvent?features.Item("0")
 
          let popup =
              mapboxgl
                  .Popup
                  .Create(jsOptions<PopupOptions> (fun opts -> opts.closeOnClick <- Some(true)))
-                 .setLngLat(!^clickEvent.lngLat)
+                 .setLngLat(!!feature.geometry.coordinates)
                  .addTo(map)
 
-         let createFeatureAndRemoveFunction a b =
-             createFeature a b |> ignore
-             popup.remove ()
+         let updateFeatureAndRemove a b c =
+             updateFeature a b c
+             popup.remove () |> ignore
 
-         let poiSelectorNode =
-             App.UI.poiSelector (createFeatureAndRemoveFunction) clickEvent.lngLat nearbyFeatures clickedFeatures
+         let poiEditorNode =
+             App.UI.poiEditor feature updateFeatureAndRemove
 
-         popup.setDOMContent (poiSelectorNode) |> ignore))
+         popup.setDOMContent (poiEditorNode) |> ignore))
+|> ignore
+
+
+
+let handleMapClick (clickEvent: MapMouseEvent) =
+    let nearbyFeatures: seq<MapboxGeoJSONFeature> =
+        !!(map.querySourceFeatures ("composite", {| sourceLayer = "poi_label" |}))
+
+    let clickedFeatures =
+        map.queryRenderedFeatures (!^ !^clickEvent.point)
+        |> Seq.filter isFeature
+
+    let popup =
+        mapboxgl
+            .Popup
+            .Create(jsOptions<PopupOptions> (fun opts -> opts.closeOnClick <- Some(true)))
+            .setLngLat(!^clickEvent.lngLat)
+            .addTo(map)
+
+    let createFeatureAndRemoveFunction a b =
+        createFeature a b |> ignore
+        popup.remove ()
+
+    let poiSelectorNode =
+        App.UI.poiSelector (createFeatureAndRemoveFunction) clickEvent.lngLat nearbyFeatures clickedFeatures
+
+    popup.setDOMContent (poiSelectorNode) |> ignore
+
+map.on
+    ("click",
+     (fun (e: Option<obj>) ->
+         let clickEvent: Option<MapMouseEvent> = !!e
+
+         match clickEvent with
+         | Some (clickEvent) when not clickEvent.originalEvent.cancelBubble -> handleMapClick clickEvent
+         | _ -> console.log ("Map click already handled")))
 |> ignore
 
 

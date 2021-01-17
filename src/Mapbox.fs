@@ -350,6 +350,7 @@ module Mapboxgl =
         abstract isEasing: unit -> bool
         abstract stop: unit -> Map
         abstract on: ``type``: KeyOf<MapLayerEventType> * layer: string * listener: (obj -> unit) -> Map
+        abstract on: ``type``: string * layer: string * listener: (obj -> unit) -> Map
         abstract on: ``type``: KeyOf<MapEventType> * listener: (obj -> unit) -> Map
         abstract on: ``type``: string * listener: (obj option -> unit) -> Map
         abstract once: ``type``: KeyOf<MapLayerEventType> * layer: string * listener: (obj -> unit) -> Map
