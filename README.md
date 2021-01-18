@@ -18,4 +18,4 @@ Any modification you do to the F# code will be reflected in the web page after s
 
 ## Production deploy
 
-* Build production bundle: `npm build`
+* Build production bundle: `npm run build`

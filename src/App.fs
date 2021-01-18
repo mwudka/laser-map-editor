@@ -11,6 +11,8 @@ open App.Geo
 open Fable.Core.DynamicExtensions
 open MapboxGeocoder
 
+importAll "./style.scss"
+
 
 let window = Browser.Dom.window
 let document = Browser.Dom.document
