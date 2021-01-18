@@ -49,6 +49,12 @@ let poiSelector createFeature
 
     ul
 
+let labelElement string input =
+    let labelEl: HTMLLabelElement = createElement ("label")
+    labelEl.innerText <- string
+    labelEl.appendChild(input) |> ignore
+    labelEl
+
 let poiEditor (feature: Geo.LaserEditorFeature) (performUpdate: (obj -> string -> int -> int -> unit)) =
     let form: HTMLFormElement = createElement ("form")
 
@@ -56,7 +62,7 @@ let poiEditor (feature: Geo.LaserEditorFeature) (performUpdate: (obj -> string -
     let textEl: HTMLInputElement = createElement ("input")
     textEl.name <- "text-content"
     textEl.value <- feature.properties.textContent
-    form.appendChild (textEl) |> ignore
+    form.appendChild (labelElement "Text" textEl) |> ignore
 
     let rotationEl: HTMLInputElement = createElement ("input")
     rotationEl.name <- "rotation"
@@ -64,7 +70,7 @@ let poiEditor (feature: Geo.LaserEditorFeature) (performUpdate: (obj -> string -
     rotationEl.``type`` <- "number"
     rotationEl.min <- "0"
     rotationEl.max <- "360"
-    form.appendChild (rotationEl) |> ignore
+    form.appendChild (labelElement "Rotation" rotationEl) |> ignore
 
     let fontSizeEl: HTMLInputElement = createElement ("input")
     fontSizeEl.name <- "fontSize"
@@ -72,7 +78,7 @@ let poiEditor (feature: Geo.LaserEditorFeature) (performUpdate: (obj -> string -
     fontSizeEl.``type`` <- "number"
     fontSizeEl.min <- "1"
     fontSizeEl.max <- "70"
-    form.appendChild (fontSizeEl) |> ignore
+    form.appendChild (labelElement "Font Size" fontSizeEl) |> ignore
     
     let submit: HTMLInputElement = createElement ("input")
     submit.``type`` <- "submit"
