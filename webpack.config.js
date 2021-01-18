@@ -2,6 +2,8 @@
 // For a more comprehensive configuration check:
 // https://github.com/fable-compiler/webpack-config-template
 
+var isProduction = !hasArg(/webpack-dev-server/);
+
 var path = require("path");
 var webpack = require('webpack');
 var HtmlWebpackPlugin = require('html-webpack-plugin');
@@ -15,7 +17,7 @@ var CONFIG = {
     cssEntry: './src/style.scss',
     outputDir: './dist',
     assetsDir: './public',
-    publicPath: '/', // Where the bundled files are accessible relative to server root
+    publicPath: isProduction ? '/laser-map-editor' : '/', // Where the bundled files are accessible relative to server root
     devServerPort: 8080,
     // When using webpack-dev-server, you may need to redirect some calls
     // to a external API server. See https://webpack.js.org/configuration/dev-server/#devserver-proxy
@@ -37,7 +39,6 @@ var CONFIG = {
 }
 
 // If we're running webpack-dev-server, assume we're in development
-var isProduction = !hasArg(/webpack-dev-server/);
 var outputWebpackStatsAsJson = hasArg('--json');
 
 if (!outputWebpackStatsAsJson) {
