@@ -100,10 +100,10 @@ module Mapboxgl =
         | Error
 
     type LngLatLike =
-        U6<float * float, LngLat, float, float, float, float>
-
+        U6<LngLatTuple, LngLat, float, float, float, float>
+    type LngLatTuple = float * float
     type LngLatBoundsLike =
-        U4<LngLatBounds, LngLatLike * LngLatLike, float * float * float * float, LngLatLike>
+        U5<LngLatBounds, LngLatLike * LngLatLike, float * float * float * float, LngLatLike, LngLatTuple * LngLatTuple>
 
     type PointLike =
         U2<Point, float * float>
@@ -1058,7 +1058,7 @@ module Mapboxgl =
         /// Get north edge latitude
         abstract getNorth: unit -> float
         /// Returns a LngLatBounds as an array
-        abstract toArray: unit -> ResizeArray<ResizeArray<float>>
+        abstract toArray: unit -> (float*float)*(float*float)
         /// Return a LngLatBounds as a string
         abstract toString: unit -> string
         /// Returns a boolean

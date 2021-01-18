@@ -45,6 +45,12 @@ map.addControl (!^geocoder) |> ignore
 [<Emit("new Blob($0, $1)")>]
 let createBlob (bytes: seq<obj>, options: BlobPropertyBag): Blob = jsNative
 
+type DocumentV1 = {
+    BoundingBox: (float*float)*(float*float)
+    Features: LaserEditorFeature []
+}
+    with static member Key = "laser-map-editor-doc-v1"
+
 let saveImage _ =
     let canvasEl: HTMLCanvasElement = App.UI.getFirstElementByTagName("canvas")
 
@@ -67,14 +73,13 @@ let saveImage _ =
         | head :: tail -> head :: (insertSecondLast el tail)
         | [] -> []
 
-    // TODO: Create a real class for this.
-    // TODO: Include bounding box
-    let serializedDoc =
-        JSON.stringify (createdFeatures |> Seq.toArray)
+    let doc = {
+        BoundingBox = map.getBounds().toArray()
+        Features = createdFeatures |> Seq.toArray
+    }
 
-    // TODO: Make constant for magic string
     let newChunk =
-        App.PNG.text ("laser-map-editor-doc", serializedDoc)
+        App.PNG.text (DocumentV1.Key, JSON.stringify(doc))
 
     // The text chunk needs to live somewhere after header chunk but before the end chunk. Second-to-last is a convenient
     // spot for this
@@ -196,7 +201,7 @@ bodyEl.addEventListener
 
                      Some(key, value)
 
-             let parsedDoc: LaserEditorFeature [] option =
+             let parsedDoc: DocumentV1 option =
                  let uint8Array = App.PNG.createUint8Array (!^arrayBuffer)
 
                  App.PNG.extract (!^uint8Array)
@@ -204,17 +209,18 @@ bodyEl.addEventListener
                  |> Seq.find (fun chunk ->
                      match chunk with
                      | None -> false
-                     | Some (key, _) -> key = "laser-map-editor-doc")
+                     | Some (key, _) -> key = DocumentV1.Key)
                  |> Option.map (fun (_, serializedDoc) -> !! JSON.parse (serializedDoc))
 
-             if parsedDoc.IsNone then
-                 console.log ("No serialized doc")
-             else
-                 newDoc()
-                 
-                 createdFeatures <- List.ofArray (parsedDoc.Value)
-                 console.log ("Parsed serialized doc", createdFeatures)
+             match parsedDoc with
+             | None -> console.log ("No serialized doc")
+             | Some(parsedDoc) ->
+                 console.log ("Parsed serialized doc", parsedDoc)
 
+                 newDoc()
+                 map.fitBounds(!^parsedDoc.BoundingBox) |> ignore
+                 createdFeatures <- List.ofArray (parsedDoc.Features)
+                
                  createdFeatures
                  |> Seq.iter (fun feature ->
                      let textImage = generateTextImage feature
