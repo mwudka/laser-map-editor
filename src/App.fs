@@ -19,7 +19,6 @@ let document = Browser.Dom.document
 let localStorageBoundingBoxKey = "boundingbox"
 
 let mutable createdFeatures: LaserEditorFeature list = []
-let mutable nextImageId = 0
 
 mapboxgl.accessToken <- "pk.eyJ1IjoibXd1ZGthIiwiYSI6ImNraXhva29veDBtd3Mycm0wMTVtMmx4dXoifQ._3QauG82dcJHW7pNWU4aoA"
 
@@ -215,18 +214,11 @@ bodyEl.addEventListener
                  createdFeatures <- List.ofArray (parsedDoc.Value)
                  console.log ("Parsed serialized doc", createdFeatures)
 
-                 let largestUsedImageId =
-                     createdFeatures
-                     |> Seq.map (fun feature -> feature.properties.id)
-                     |> Seq.max
-
-                 nextImageId <- largestUsedImageId + 1
-
                  createdFeatures
                  |> Seq.iter (fun feature ->
                      let textImage = generateTextImage feature
 
-                     let imageId: string = feature.properties.textImage
+                     let imageId = feature.properties.id
 
                      map.addImage (imageId, !^textImage) |> ignore)
 
@@ -259,7 +251,7 @@ map.on
                 layout =
                     {| ``icon-rotate`` = [| "get"; "rotation" |]
                        ``icon-size`` = [| "get"; "iconSize" |]
-                       ``icon-image`` = [| "get"; "textImage" |]
+                       ``icon-image`` = [| "get"; "id" |]
                        ``icon-allow-overlap`` = true |}
                     |> toPlainJsObj
                 paint = {| ``text-color`` = "#000000" |} |> toPlainJsObj |}
@@ -280,9 +272,7 @@ let devicePixelRatio: float = jsNative
 let createFeature (coordinates: LngLat) feature =
     let featureName = extractName feature
 
-    let imageId = nextImageId
-    nextImageId <- nextImageId + 1
-    let newImageName = sprintf "image-%i" imageId
+    let id = "poi-" + ShortUUID.shortUUID.generate()
 
     let newFeature =
         jsOptions<LaserEditorFeature> (fun o ->
@@ -295,29 +285,29 @@ let createFeature (coordinates: LngLat) feature =
 
             o.properties <-
                 jsOptions<FeatureProperties> (fun o ->
-                    o.id <- imageId
+                    o.id <- id
                     o.textContent <- featureName
-                    o.textImage <- newImageName
                     o.iconSize <- 1.0 / devicePixelRatio
                     o.rotation <- 0
                     o.fontSize <- 30))
 
-    map.addImage (newImageName, !^(generateTextImage newFeature))
+    map.addImage (id, !^(generateTextImage newFeature))
     |> ignore
     
     createdFeatures <- newFeature :: createdFeatures
     refreshMapSource ()
 
-let updateFeature (id) (newText: string) (newRotation: int) (newFontSize: int) =
+let updateFeature (id: string) (newText: string) (newRotation: int) (newFontSize: int) =
+    console.log("Applying changes to feature id", id)
     let updatedFeature =
         createdFeatures
-        |> List.find (fun feature -> feature?properties?id = id)
+        |> List.find (fun feature -> feature.properties.id = id)
 
     updatedFeature.properties.rotation <- newRotation
     updatedFeature.properties.textContent <- newText
     updatedFeature.properties.fontSize <- newFontSize
 
-    let imageName = updatedFeature.properties.textImage
+    let imageName = updatedFeature.properties.id
     map.removeImage (imageName) |> ignore
 
     map.addImage (imageName, !^(generateTextImage updatedFeature))
@@ -325,27 +315,34 @@ let updateFeature (id) (newText: string) (newRotation: int) (newFontSize: int) =
 
     refreshMapSource ()
 
-let mutable movingFeatureId: int = -1
+let mutable movingPOIId: string option = None
 
 let onMove =
     (fun (e: MapMouseEvent) ->
-        let updatedFeature =
-            createdFeatures
-            |> List.find (fun feature -> feature.properties.id = movingFeatureId)
+        match movingPOIId with
+        | None -> console.warn("onMove with no movingPOIId")
+        | Some(movingPOIId) ->
+            let updatedFeature =
+                createdFeatures
+                |> List.find (fun feature -> feature.properties.id = movingPOIId)
 
-        updatedFeature?geometry?coordinates <- e.lngLat.toArray ()
+            updatedFeature.geometry.coordinates <- e.lngLat.toArray()
 
-        refreshMapSource ())
+            refreshMapSource ()
+    )
 
 let onUp =
-    (fun (e: obj option) -> map.off ("mousemove", onMove) |> ignore)
+    (fun (e: obj option) ->
+        map.off ("mousemove", onMove) |> ignore
+        movingPOIId <- None
+    )
 
 map.on
     ("mousedown",
      "poi-labels",
      (fun (e: MapLayerMouseEvent) ->
          let feature: LaserEditorFeature = !!e.features.Item("0")
-         movingFeatureId <- feature.properties.id
+         movingPOIId <- Some(feature.properties.id)
 
          e.preventDefault ()
          map.on ("mousemove", onMove) |> ignore

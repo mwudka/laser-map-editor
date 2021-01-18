@@ -55,7 +55,7 @@ let labelElement string input =
     labelEl.appendChild(input) |> ignore
     labelEl
 
-let poiEditor (feature: Geo.LaserEditorFeature) (performUpdate: (obj -> string -> int -> int -> unit)) =
+let poiEditor (feature: Geo.LaserEditorFeature) (performUpdate: (string -> string -> int -> int -> unit)) =
     let form: HTMLFormElement = createElement ("form")
 
 
