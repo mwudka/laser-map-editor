@@ -207,6 +207,9 @@ module Mapboxgl =
         | [<CompiledName "bottom-left">] BottomLeft
         | [<CompiledName "bottom-right">] BottomRight
 
+    type QuerySourceFeaturesParameters =
+        abstract sourceLayer: string with get, set
+    
     /// Map
     type [<AllowNullLiteral>] Map =
         inherit Evented
@@ -259,7 +262,7 @@ module Mapboxgl =
         /// 
         /// Because features come from tiled vector data or GeoJSON data that is converted to tiles internally, feature geometries may be split or duplicated across tile boundaries and, as a result, features may appear multiple times in query results. For example, suppose there is a highway running through the bounding rectangle of a query. The results of the query will be those parts of the highway that lie within the map tiles covering the bounding rectangle, even if the highway extends into other tiles, and the portion of the highway within each map tile will be returned as a separate feature. Similarly, a point feature near a tile boundary may appear in multiple tiles due to tile buffering.</summary>
         /// <param name="sourceID">The ID of the vector tile or GeoJSON source to query.</param>
-        abstract querySourceFeatures: sourceID: string * ?parameters: obj -> ResizeArray<MapboxGeoJSONFeature>
+        abstract querySourceFeatures: sourceID: string * ?parameters: QuerySourceFeaturesParameters -> ResizeArray<MapboxGeoJSONFeature>
         abstract setStyle: style: U2<Mapboxgl.Style, string> * ?options: MapSetStyleOptions -> Map
         abstract getStyle: unit -> Mapboxgl.Style
         abstract isStyleLoaded: unit -> bool
@@ -1013,7 +1016,7 @@ module Mapboxgl =
         /// Return a new LngLat object whose longitude is wrapped to the range (-180, 180).
         abstract wrap: unit -> Mapboxgl.LngLat
         /// Return a LngLat as an array
-        abstract toArray: unit -> ResizeArray<float>
+        abstract toArray: unit -> float*float
         /// Return a LngLat as a string
         abstract toString: unit -> string
         /// Returns the approximate distance between a pair of coordinates in meters

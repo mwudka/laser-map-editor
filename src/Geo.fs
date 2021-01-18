@@ -9,15 +9,6 @@ type kilometer
 
 let extractName: (MapboxGeoJSONFeature -> string) = fun feature -> feature?properties?name
 
-let extractPoint (feature: MapboxGeoJSONFeature) =
-    let featureType: string = !!feature?geometry?``type``
-    let coordinates: Option<float * float> = !!feature?geometry?coordinates
-
-    if featureType = "Point" then
-        coordinates
-        |> Option.map Mapbox.mapboxgl.LngLat.Create
-    else
-        None
 
 type FeatureProperties =
     abstract iconSize: float with get, set
@@ -27,3 +18,14 @@ type FeatureProperties =
     abstract textContent: string with get, set
 
 type LaserEditorFeature = GeoJSON.Feature<GeoJSON.Point, FeatureProperties>
+
+
+let extractPoint (feature: MapboxGeoJSONFeature) =
+    let featureType: string = !!feature?geometry?``type``
+    let coordinates: Option<float * float> = !!feature?geometry?coordinates
+
+    if featureType = "Point" then
+        coordinates
+        |> Option.map Mapbox.mapboxgl.LngLat.Create
+    else
+        None

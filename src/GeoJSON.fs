@@ -15,7 +15,7 @@ type BBox =
     U2<float * float * float * float, float * float * float * float * float * float>
 
 type Position =
-    ResizeArray<float>
+    float*float
 
 /// The base GeoJSON object.
 /// https://tools.ietf.org/html/rfc7946#section-3

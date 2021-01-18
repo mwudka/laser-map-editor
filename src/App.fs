@@ -54,9 +54,7 @@ type TextEncoder =
 let createTextDecoder (encoding: string): TextEncoder = jsNative
 
 let saveImage _ =
-    let canvasEl: HTMLCanvasElement =
-        !!document.getElementsByTagName("canvas").[0]
-
+    let canvasEl: HTMLCanvasElement = App.UI.getFirstElementByTagName("canvas")
 
     let imageMimeType = "image/png"
     let dataURL = canvasEl.toDataURL (imageMimeType)
@@ -79,7 +77,8 @@ let saveImage _ =
 
     // TODO: Create a real class for this.
     // TODO: Include bounding box
-    let serializedDoc = JSON.stringify (createdFeatures |> Seq.toArray)
+    let serializedDoc =
+        JSON.stringify (createdFeatures |> Seq.toArray)
 
     // TODO: Make constant for magic string
     let newChunk =
@@ -97,7 +96,7 @@ let saveImage _ =
 
     let dataURL = URL.createObjectURL (blob)
 
-    let a: HTMLAnchorElement = !! document.createElement ("a")
+    let a: HTMLAnchorElement = App.UI.createElement ("a")
     a.href <- dataURL
     a.setAttribute ("download", "image.png")
     document.body.appendChild (a) |> ignore
@@ -136,7 +135,7 @@ let roundRect (ctx: CanvasRenderingContext2D, x: float, y: float, width: float, 
     ctx.fill ()
 
 let generateTextImage text =
-    let canvasEl: HTMLCanvasElement = !! document.createElement ("canvas")
+    let canvasEl: HTMLCanvasElement = App.UI.createElement ("canvas")
     canvasEl.width <- 1000.0
     canvasEl.height <- 1000.0
     let context2D = canvasEl.getContext_2d ()
@@ -160,12 +159,12 @@ let generateTextImage text =
 let refreshMapSource =
     fun () ->
         let source: GeoJSONSource = !! map.getSource ("places")
+        
 
-        let newData: GeoJSON.FeatureCollection<GeoJSON.Geometry> =
-            !!({| ``type`` = "FeatureCollection"
-                  features = Seq.toArray createdFeatures |}
-               |> toPlainJsObj)
-
+        let newData = jsOptions<GeoJSON.FeatureCollection<GeoJSON.Geometry>>(fun o ->
+            o.``type`` <- "FeatureCollection"
+            o.features <- Seq.toArray !!createdFeatures
+            )
         source.setData (!^newData) |> ignore
 
 
@@ -188,21 +187,19 @@ bodyEl.addEventListener
                  if chunk.name <> "tEXt" then
                      None
                  else
-                     let delimeterIndex = chunk.data.indexOf (uint8 (0))
+                     let delimiterIndex = chunk.data.indexOf (uint8 (0))
 
                      let key =
                          createTextDecoder("utf-8")
-                             .decode(chunk.data.slice (``end`` = delimeterIndex))
+                             .decode(chunk.data.slice (``end`` = delimiterIndex))
 
                      let value =
                          createTextDecoder("utf-8")
-                             .decode(chunk.data.slice (``begin`` = delimeterIndex + 1))
+                             .decode(chunk.data.slice (``begin`` = delimiterIndex + 1))
 
                      Some(key, value)
 
-
-
-             let parsedDoc: LaserEditorFeature[] option =
+             let parsedDoc: LaserEditorFeature [] option =
                  let uint8Array = createUint8Array (arrayBuffer)
 
                  App.PNG.extract (!^uint8Array)
@@ -211,13 +208,12 @@ bodyEl.addEventListener
                      match chunk with
                      | None -> false
                      | Some (key, _) -> key = "laser-map-editor-doc")
-                 |> Option.map (fun (_, serializedDoc) -> !!JSON.parse (serializedDoc))
-
+                 |> Option.map (fun (_, serializedDoc) -> !! JSON.parse (serializedDoc))
 
              if parsedDoc.IsNone then
                  console.log ("No serialized doc")
              else
-                 createdFeatures <- List.ofArray(parsedDoc.Value)
+                 createdFeatures <- List.ofArray (parsedDoc.Value)
                  console.log ("Parsed serialized doc", createdFeatures)
 
                  let largestUsedImageId =
@@ -248,11 +244,14 @@ map.on
 
          map.addSource
              ("places",
-              !!({| ``type`` = "geojson"
-                    data =
-                        {| ``type`` = "FeatureCollection"
-                           features = [||] |} |}
-                 |> toPlainJsObj))
+              !^jsOptions<GeoJSONSourceRaw>(fun o ->
+                  o.``type`` <- "geojson"
+                  o.data <- Some(!^jsOptions<GeoJSON.FeatureCollection>(fun o ->
+                      o.``type`` <- "FeatureCollection"
+                      o.features <- [||]
+                      ))
+                  )
+         )
          |> ignore
 
          let poiLabelsLayer =
@@ -269,7 +268,7 @@ map.on
 
              |> toPlainJsObj
 
-         map.addLayer (!!poiLabelsLayer) |> ignore
+         map.addLayer (poiLabelsLayer) |> ignore
 
          ))
 |> ignore
@@ -291,23 +290,21 @@ let createFeature (coordinates: LngLat) feature =
     |> ignore
 
     let newFeature =
-        {| ``type`` = "Feature"
-           geometry =
-               {| ``type`` = "Point"
-                  coordinates = coordinates.toArray () |}
-               |> toPlainJsObj
-           properties =
-               jsOptions<FeatureProperties> (fun o ->
-                   o.id <- imageId
-                   o.textContent <- featureName
-                   o.textImage <- newImageName
-                   o.iconSize <- 1.0 / devicePixelRatio
-                   o.rotation <- 0
-                   ())
-               |> toPlainJsObj
-               |> toPlainJsObj |}
-        |> toPlainJsObj
-    let newFeature: LaserEditorFeature = !!newFeature
+        jsOptions<LaserEditorFeature> (fun o ->
+            o.``type`` <- "Feature"
+
+            o.geometry <-
+                jsOptions<GeoJSON.Point> (fun o ->
+                    o.``type`` <- "Point"
+                    o.coordinates <- coordinates.toArray ())
+
+            o.properties <-
+                jsOptions<FeatureProperties> (fun o ->
+                    o.id <- imageId
+                    o.textContent <- featureName
+                    o.textImage <- newImageName
+                    o.iconSize <- 1.0 / devicePixelRatio
+                    o.rotation <- 0))
 
     createdFeatures <- newFeature :: createdFeatures
     refreshMapSource ()
@@ -370,7 +367,7 @@ map.on
              mapboxgl
                  .Popup
                  .Create(jsOptions<PopupOptions> (fun opts -> opts.closeOnClick <- Some(true)))
-                 .setLngLat(!!feature.geometry.coordinates)
+                 .setLngLat(!^feature.geometry.coordinates)
                  .addTo(map)
 
          let updateFeatureAndRemove a b c =
@@ -387,7 +384,8 @@ map.on
 
 let handleMapClick (clickEvent: MapMouseEvent) =
     let nearbyFeatures: seq<MapboxGeoJSONFeature> =
-        !!(map.querySourceFeatures ("composite", {| sourceLayer = "poi_label" |}))
+        !!(map.querySourceFeatures
+            ("composite", jsOptions<QuerySourceFeaturesParameters> (fun o -> o.sourceLayer <- "poi_label")))
 
     let clickedFeatures =
         map.queryRenderedFeatures (!^ !^clickEvent.point)
