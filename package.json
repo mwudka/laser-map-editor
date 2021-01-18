@@ -10,7 +10,6 @@
     "babel-loader": "^8.2.2",
     "core-js": "^3.8.2",
     "mapbox-gl": "^2.0.1",
-    "png-chunk-text": "^1.0.0",
     "png-chunks-encode": "^1.0.0",
     "png-chunks-extract": "^1.0.0",
     "short-uuid": "^4.1.0"

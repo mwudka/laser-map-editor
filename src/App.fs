@@ -45,15 +45,6 @@ map.addControl (!^geocoder) |> ignore
 [<Emit("new Blob($0, $1)")>]
 let createBlob (bytes: seq<obj>, options: BlobPropertyBag): Blob = jsNative
 
-[<Emit("new Uint8Array($0)")>]
-let createUint8Array (arrayBuffer: ArrayBuffer): Uint8Array = jsNative
-
-type TextEncoder =
-    abstract decode: Uint8Array -> string
-
-[<Emit("new TextDecoder($0)")>]
-let createTextDecoder (encoding: string): TextEncoder = jsNative
-
 let saveImage _ =
     let canvasEl: HTMLCanvasElement = App.UI.getFirstElementByTagName("canvas")
 
@@ -189,23 +180,24 @@ bodyEl.addEventListener
 
          arrayBuffer.``then`` (fun (arrayBuffer: ArrayBuffer) ->
              let parseTextChunk (chunk: App.PNG.PNGChunk) =
-                 if chunk.name <> "tEXt" then
+                 console.log(chunk)
+                 if chunk.name <> "iTXt" then
                      None
                  else
-                     let delimiterIndex = chunk.data.indexOf (uint8 (0))
-
+                     let keyEndIndex = chunk.data.indexOf (uint8 (0))
                      let key =
-                         createTextDecoder("utf-8")
-                             .decode(chunk.data.slice (``end`` = delimiterIndex))
+                         App.PNG.createTextDecoder("utf-8")
+                             .decode(chunk.data.slice (``end`` = keyEndIndex))
 
+                     let valueStartIndex = chunk.data.lastIndexOf (uint8 (0))
                      let value =
-                         createTextDecoder("utf-8")
-                             .decode(chunk.data.slice (``begin`` = delimiterIndex + 1))
+                         App.PNG.createTextDecoder("utf-8")
+                             .decode(chunk.data.slice (``begin`` = valueStartIndex + 1))
 
                      Some(key, value)
 
              let parsedDoc: LaserEditorFeature [] option =
-                 let uint8Array = createUint8Array (arrayBuffer)
+                 let uint8Array = App.PNG.createUint8Array (!^arrayBuffer)
 
                  App.PNG.extract (!^uint8Array)
                  |> Seq.map parseTextChunk
