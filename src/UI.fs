@@ -49,7 +49,7 @@ let poiSelector createFeature
 
     ul
 
-let poiEditor (feature: Geo.LaserEditorFeature) (performUpdate: (obj -> string -> int -> unit)) =
+let poiEditor (feature: Geo.LaserEditorFeature) (performUpdate: (obj -> string -> int -> int -> unit)) =
     let form: HTMLFormElement = createElement ("form")
 
 
@@ -66,6 +66,14 @@ let poiEditor (feature: Geo.LaserEditorFeature) (performUpdate: (obj -> string -
     rotationEl.max <- "360"
     form.appendChild (rotationEl) |> ignore
 
+    let fontSizeEl: HTMLInputElement = createElement ("input")
+    fontSizeEl.name <- "fontSize"
+    fontSizeEl.value <- string(feature.properties.fontSize)
+    fontSizeEl.``type`` <- "number"
+    fontSizeEl.min <- "1"
+    fontSizeEl.max <- "70"
+    form.appendChild (fontSizeEl) |> ignore
+    
     let submit: HTMLInputElement = createElement ("input")
     submit.``type`` <- "submit"
     form.appendChild (submit) |> ignore
@@ -73,8 +81,6 @@ let poiEditor (feature: Geo.LaserEditorFeature) (performUpdate: (obj -> string -
     form.onsubmit <-
         (fun (e: Event) ->
             e.preventDefault ()
-            performUpdate feature.properties.id textEl.value (int rotationEl.value))
-
-
+            performUpdate feature.properties.id textEl.value (int rotationEl.value) (int fontSizeEl.value))
 
     form

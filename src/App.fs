@@ -134,14 +134,14 @@ let roundRect (ctx: CanvasRenderingContext2D, x: float, y: float, width: float, 
     ctx.closePath ()
     ctx.fill ()
 
-let generateTextImage text =
+let generateTextImage (feature: LaserEditorFeature) =
     let canvasEl: HTMLCanvasElement = App.UI.createElement ("canvas")
     canvasEl.width <- 1000.0
     canvasEl.height <- 1000.0
     let context2D = canvasEl.getContext_2d ()
-    context2D.font <- "30px serif"
+    context2D.font <- sprintf "%dpx serif" feature.properties.fontSize
     context2D.textBaseline <- "middle"
-    let metrics = context2D.measureText (text)
+    let metrics = context2D.measureText (feature.properties.textContent)
 
     let height =
         20.0
@@ -152,7 +152,7 @@ let generateTextImage text =
     roundRect (context2D, 0.0, 0.0, metrics.width + 40.0, height, 20.0)
 
     context2D.fillStyle <- !^ "black"
-    context2D.fillText (text, 20.0, metrics?actualBoundingBoxAscent + 10.0)
+    context2D.fillText (feature.properties.textContent, 20.0, metrics?actualBoundingBoxAscent + 10.0)
     context2D.getImageData (0.0, 0.0, metrics.width + 40.0, height)
 
 
@@ -222,8 +222,7 @@ bodyEl.addEventListener
 
                  createdFeatures
                  |> Seq.iter (fun feature ->
-                     let textImage =
-                         generateTextImage (feature.properties.textContent)
+                     let textImage = generateTextImage feature
 
                      let imageId: string = feature.properties.textImage
 
@@ -283,9 +282,6 @@ let createFeature (coordinates: LngLat) feature =
     nextImageId <- nextImageId + 1
     let newImageName = sprintf "image-%i" imageId
 
-    map.addImage (newImageName, !^(generateTextImage featureName))
-    |> ignore
-
     let newFeature =
         jsOptions<LaserEditorFeature> (fun o ->
             o.``type`` <- "Feature"
@@ -301,22 +297,28 @@ let createFeature (coordinates: LngLat) feature =
                     o.textContent <- featureName
                     o.textImage <- newImageName
                     o.iconSize <- 1.0 / devicePixelRatio
-                    o.rotation <- 0))
+                    o.rotation <- 0
+                    o.fontSize <- 30))
 
+    map.addImage (newImageName, !^(generateTextImage newFeature))
+    |> ignore
+    
     createdFeatures <- newFeature :: createdFeatures
     refreshMapSource ()
 
-let updateFeature (id) (newText: string) (newRotation: int) =
+let updateFeature (id) (newText: string) (newRotation: int) (newFontSize: int) =
     let updatedFeature =
         createdFeatures
         |> List.find (fun feature -> feature?properties?id = id)
 
-    updatedFeature?properties?rotation <- newRotation
+    updatedFeature.properties.rotation <- newRotation
+    updatedFeature.properties.textContent <- newText
+    updatedFeature.properties.fontSize <- newFontSize
 
     let imageName = updatedFeature.properties.textImage
     map.removeImage (imageName) |> ignore
 
-    map.addImage (imageName, !^(generateTextImage newText))
+    map.addImage (imageName, !^(generateTextImage updatedFeature))
     |> ignore
 
     refreshMapSource ()
@@ -365,8 +367,8 @@ map.on
                  .setLngLat(!^feature.geometry.coordinates)
                  .addTo(map)
 
-         let updateFeatureAndRemove a b c =
-             updateFeature a b c
+         let updateFeatureAndRemove a b c d =
+             updateFeature a b c d
              popup.remove () |> ignore
 
          let poiEditorNode =
