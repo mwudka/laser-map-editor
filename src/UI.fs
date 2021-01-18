@@ -11,7 +11,6 @@ open JsInterop
 let document = Browser.Dom.document
 let console = Browser.Dom.console
 
-//let createElement: (tagName: string -> T') = !!document.createElement(tagName)
 let createElement (tagName: string): 'T =
     !!document.createElement(tagName)
 

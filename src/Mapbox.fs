@@ -353,15 +353,15 @@ module Mapboxgl =
         abstract isEasing: unit -> bool
         abstract stop: unit -> Map
         abstract on: ``type``: KeyOf<MapLayerEventType> * layer: string * listener: (obj -> unit) -> Map
-        abstract on: ``type``: string * layer: string * listener: (obj -> unit) -> Map
+        abstract on: ``type``: string * layer: string * listener: ('T -> unit) -> Map
         abstract on: ``type``: KeyOf<MapEventType> * listener: (obj -> unit) -> Map
-        abstract on: ``type``: string * listener: (obj option -> unit) -> Map
+        abstract on: ``type``: string * listener: ('T -> unit) -> Map
         abstract once: ``type``: KeyOf<MapLayerEventType> * layer: string * listener: (obj -> unit) -> Map
         abstract once: ``type``: KeyOf<MapEventType> * listener: (obj -> unit) -> Map
         abstract once: ``type``: string * listener: (obj option -> unit) -> Map
         abstract off: ``type``: KeyOf<MapLayerEventType> * layer: string * listener: (obj -> unit) -> Map
-        abstract off: ``type``: KeyOf<MapEventType> * listener: (obj -> unit) -> Map
-        abstract off: ``type``: string * listener: (obj option -> unit) -> Map
+        abstract off: ``type``: KeyOf<'T> * listener: ('T -> unit) -> Map
+        abstract off: ``type``: string * listener: ('T -> unit) -> Map
         abstract scrollZoom: ScrollZoomHandler with get, set
         abstract boxZoom: BoxZoomHandler with get, set
         abstract dragRotate: DragRotateHandler with get, set
@@ -1235,7 +1235,8 @@ module Mapboxgl =
         [<EmitConstructor>] abstract Create: unit -> MapMouseEvent
 
     type [<AllowNullLiteral>] MapLayerMouseEvent =
-        interface end
+        inherit MapMouseEvent
+        abstract features: ResizeArray<MapboxGeoJSONFeature>
 
     type [<AllowNullLiteral>] MapTouchEvent =
         inherit MapboxEvent<TouchEvent>

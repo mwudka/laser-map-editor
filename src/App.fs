@@ -167,14 +167,11 @@ let refreshMapSource =
             )
         source.setData (!^newData) |> ignore
 
-
 bodyEl.addEventListener
     ("drop",
-     (fun (e: Event) ->
+     !!(fun (e: DragEvent) ->
          e.preventDefault ()
          e.stopPropagation ()
-
-         let e: DragEvent = !!e
 
          let firstFile = e.dataTransfer.files.item (0)
          let firstFileBlob = firstFile.slice ()
@@ -327,9 +324,7 @@ let updateFeature (id) (newText: string) (newRotation: int) =
 let mutable movingFeatureId: int = -1
 
 let onMove =
-    (fun (e: obj option) ->
-        let e: MapMouseEvent = !!e
-
+    (fun (e: MapMouseEvent) ->
         let updatedFeature =
             createdFeatures
             |> List.find (fun feature -> feature.properties.id = movingFeatureId)
@@ -344,9 +339,9 @@ let onUp =
 map.on
     ("mousedown",
      "poi-labels",
-     (fun (e: obj) ->
-         let e: MapMouseEvent = !!e
-         movingFeatureId <- e?features.Item("0")?properties?id
+     (fun (e: MapLayerMouseEvent) ->
+         let feature: LaserEditorFeature = !!e.features.Item("0")
+         movingFeatureId <- feature.properties.id
 
          e.preventDefault ()
          map.on ("mousemove", onMove) |> ignore
@@ -358,10 +353,10 @@ map.on
 map.on
     ("click",
      "poi-labels",
-     (fun (e: obj) ->
-         let clickEvent: MapMouseEvent = !!e
+     (fun (clickEvent: MapLayerMouseEvent) ->
          clickEvent.originalEvent.cancelBubble <- true
-         let feature: LaserEditorFeature = !!clickEvent?features.Item("0")
+         
+         let feature: LaserEditorFeature = !!clickEvent.features.Item("0")
 
          let popup =
              mapboxgl
@@ -409,12 +404,13 @@ let handleMapClick (clickEvent: MapMouseEvent) =
 
 map.on
     ("click",
-     (fun (e: Option<obj>) ->
-         let clickEvent: Option<MapMouseEvent> = !!e
-
-         match clickEvent with
-         | Some (clickEvent) when not clickEvent.originalEvent.cancelBubble -> handleMapClick clickEvent
-         | _ -> console.log ("Map click already handled")))
+     (fun (clickEvent: MapMouseEvent) ->
+         if not clickEvent.originalEvent.cancelBubble then
+             handleMapClick clickEvent
+         else
+             console.log ("Map click already handled")
+    )
+)
 |> ignore
 
 
