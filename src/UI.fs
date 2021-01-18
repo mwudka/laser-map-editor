@@ -55,7 +55,7 @@ let labelElement string input =
     labelEl.appendChild(input) |> ignore
     labelEl
 
-let poiEditor (feature: Geo.LaserEditorFeature) (performUpdate: (string -> string -> int -> int -> unit)) =
+let poiEditor (feature: Geo.LaserEditorFeature) (performUpdate: (string -> string -> int -> int -> unit)) (deleteFeature: (Geo.LaserEditorFeature -> unit)) =
     let form: HTMLFormElement = createElement ("form")
 
 
@@ -83,6 +83,14 @@ let poiEditor (feature: Geo.LaserEditorFeature) (performUpdate: (string -> strin
     let submit: HTMLInputElement = createElement ("input")
     submit.``type`` <- "submit"
     form.appendChild (submit) |> ignore
+    
+    let delete: HTMLButtonElement = createElement ("button")
+    delete.innerText <- "Delete"
+    delete.addEventListener("click", (fun e ->
+        e.preventDefault()
+        deleteFeature(feature)
+        ))
+    form.appendChild (delete) |> ignore
     
     form.onsubmit <-
         (fun (e: Event) ->

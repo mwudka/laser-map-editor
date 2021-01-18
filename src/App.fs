@@ -325,6 +325,13 @@ let updateFeature (id: string) (newText: string) (newRotation: int) (newFontSize
     |> ignore
 
     refreshMapSource ()
+    
+let deleteFeature (feature: LaserEditorFeature) =
+    console.log("Deleting feature", feature)
+    
+    createdFeatures <- createdFeatures |> List.filter(fun f -> f.properties.id <> feature.properties.id)
+    refreshMapSource()
+    map.removeImage (feature.properties.id) |> ignore
 
 let mutable movingPOIId: string option = None
 
@@ -380,9 +387,13 @@ map.on
          let updateFeatureAndRemove a b c d =
              updateFeature a b c d
              popup.remove () |> ignore
+             
+         let deleteFeatureAndRemove a =
+             deleteFeature a
+             popup.remove() |> ignore
 
          let poiEditorNode =
-             App.UI.poiEditor feature updateFeatureAndRemove
+             App.UI.poiEditor feature updateFeatureAndRemove deleteFeatureAndRemove
 
          popup.setDOMContent (poiEditorNode) |> ignore))
 |> ignore

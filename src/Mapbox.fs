@@ -1458,8 +1458,8 @@ module Mapboxgl =
         abstract maxzoom: float option with get, set
         abstract interactive: bool option with get, set
         abstract filter: ResizeArray<obj option> option with get, set
-        abstract layout: Layout option with get, set
-        abstract paint: obj option with get, set
+        abstract layout: U2<Layout, SymbolLayout> option with get, set
+        abstract paint: SymbolPaint option with get, set
 
     type [<AllowNullLiteral>] BackgroundLayer =
         inherit Layer
