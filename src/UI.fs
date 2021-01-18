@@ -48,19 +48,19 @@ let poiSelector createFeature
 
     ul
 
-let poiEditor (feature: GeoJSON.Feature<GeoJSON.Point>) (performUpdate: (string -> string -> int -> unit)) =
+let poiEditor (feature: Geo.LaserEditorFeature) (performUpdate: (obj -> string -> int -> unit)) =
     let form: HTMLFormElement = !! document.createElement ("form")
 
 
 
     let textEl: HTMLInputElement = !! document.createElement ("input")
     textEl.name <- "text-content"
-    textEl.value <- !!feature.properties.Item("text-content")
+    textEl.value <- !!feature.properties.textContent
     form.appendChild (textEl) |> ignore
 
     let rotationEl: HTMLInputElement = !! document.createElement ("input")
     rotationEl.name <- "rotation"
-    rotationEl.value <- !!feature.properties.Item("rotation")
+    rotationEl.value <- !!feature.properties.rotation
     rotationEl.``type`` <- "number"
     rotationEl.min <- "0"
     rotationEl.max <- "360"
@@ -73,8 +73,7 @@ let poiEditor (feature: GeoJSON.Feature<GeoJSON.Point>) (performUpdate: (string 
     form.onsubmit <-
         (fun (e: Event) ->
             e.preventDefault ()
-            performUpdate feature.properties?id textEl.value !!(parseInt rotationEl.value))
-    //    form.addEventListener ("submit", (fun (e: Event) -> console.log ("Submitify")))
+            performUpdate feature.properties.id textEl.value !!(parseInt rotationEl.value))
 
 
 

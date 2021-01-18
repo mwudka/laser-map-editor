@@ -9,13 +9,15 @@ open JsInterop
 open App.URL
 open App.Geo
 open Fable.Core.DynamicExtensions
-
-
 open MapboxGeocoder
+
 
 let window = Browser.Dom.window
 let document = Browser.Dom.document
 let localStorageBoundingBoxKey = "boundingbox"
+
+let mutable createdFeatures: LaserEditorFeature list = []
+let mutable nextImageId = 0
 
 mapboxgl.accessToken <- "pk.eyJ1IjoibXd1ZGthIiwiYSI6ImNraXhva29veDBtd3Mycm0wMTVtMmx4dXoifQ._3QauG82dcJHW7pNWU4aoA"
 
@@ -39,12 +41,62 @@ let geocoder =
 
 map.addControl (!^geocoder) |> ignore
 
+[<Emit("new Blob($0, $1)")>]
+let createBlob (bytes: seq<obj>, options: BlobPropertyBag): Blob = jsNative
+
+[<Emit("new Uint8Array($0)")>]
+let createUint8Array (arrayBuffer: ArrayBuffer): Uint8Array = jsNative
+
+type TextEncoder =
+    abstract decode: Uint8Array -> string
+
+[<Emit("new TextDecoder($0)")>]
+let createTextDecoder (encoding: string): TextEncoder = jsNative
+
 let saveImage _ =
     let canvasEl: HTMLCanvasElement =
         !!document.getElementsByTagName("canvas").[0]
 
 
-    let dataURL = canvasEl.toDataURL ("image/png")
+    let imageMimeType = "image/png"
+    let dataURL = canvasEl.toDataURL (imageMimeType)
+    let binaryString = window.atob (dataURL.Split(',').[1])
+    URL.revokeObjectURL (dataURL)
+
+    let chunks =
+        App.PNG.extract
+            (!^(binaryString.ToCharArray()
+                |> Seq.map uint8
+                |> Seq.toArray))
+        |> Seq.toList
+
+    // TODO: Extract into helper
+    let rec insertSecondLast el list =
+        match list with
+        | [ head ] -> el :: head :: []
+        | head :: tail -> head :: (insertSecondLast el tail)
+        | [] -> []
+
+    // TODO: Create a real class for this.
+    // TODO: Include bounding box
+    let serializedDoc = JSON.stringify (createdFeatures |> Seq.toArray)
+
+    // TODO: Make constant for magic string
+    let newChunk =
+        App.PNG.text ("laser-map-editor-doc", serializedDoc)
+
+    // The text chunk needs to live somewhere after header chunk but before the end chunk. Second-to-last is a convenient
+    // spot for this
+    let chunks =
+        chunks |> insertSecondLast newChunk |> Seq.toArray
+
+    let encoded = App.PNG.encode (chunks)
+
+    let blob =
+        createBlob ([ encoded ], jsOptions<BlobPropertyBag> (fun o -> o.``type`` <- imageMimeType))
+
+    let dataURL = URL.createObjectURL (blob)
+
     let a: HTMLAnchorElement = !! document.createElement ("a")
     a.href <- dataURL
     a.setAttribute ("download", "image.png")
@@ -58,44 +110,15 @@ let saveImage _ =
 
     a.click ()
 
+let bodyEl =
+    document.getElementsByTagName("body").[0]
 
-map.on
-    ("load",
-     (fun () ->
-         document
-             .getElementById("save")
-             .addEventListener("click", saveImage)
+bodyEl.addEventListener
+    ("dragover",
+     (fun (e: Event) ->
+         e.preventDefault ()
+         e.stopPropagation ()))
 
-         map.addSource
-             ("places",
-              !!({| ``type`` = "geojson"
-                    data =
-                        {| ``type`` = "FeatureCollection"
-                           features = [||] |} |}
-                 |> toPlainJsObj))
-         |> ignore
-
-         let poiLabelsLayer =
-             {| id = "poi-labels"
-                ``type`` = "symbol"
-                source = "places"
-                layout =
-                    {| ``icon-rotate`` = [| "get"; "rotation" |]
-                       ``icon-size`` = [| "get"; "icon-size" |]
-                       ``icon-image`` = [| "get"; "text-image" |]
-                       ``icon-allow-overlap`` = true |}
-                    |> toPlainJsObj
-                paint = {| ``text-color`` = "#000000" |} |> toPlainJsObj |}
-
-             |> toPlainJsObj
-
-         map.addLayer (!!poiLabelsLayer) |> ignore
-
-         ))
-|> ignore
-
-let isFeature: (MapboxGeoJSONFeature -> bool) =
-    fun feature -> feature?``type`` = "Feature"
 
 // From https://stackoverflow.com/questions/1255512/how-to-draw-a-rounded-rectangle-on-html-canvas
 let roundRect (ctx: CanvasRenderingContext2D, x: float, y: float, width: float, height: float, radius: float) =
@@ -133,11 +156,6 @@ let generateTextImage text =
     context2D.fillText (text, 20.0, metrics?actualBoundingBoxAscent + 10.0)
     context2D.getImageData (0.0, 0.0, metrics.width + 40.0, height)
 
-let mutable createdFeatures = []
-let mutable nextImageId = 0
-
-[<Global>]
-let devicePixelRatio: float = jsNative
 
 let refreshMapSource =
     fun () ->
@@ -149,6 +167,118 @@ let refreshMapSource =
                |> toPlainJsObj)
 
         source.setData (!^newData) |> ignore
+
+
+bodyEl.addEventListener
+    ("drop",
+     (fun (e: Event) ->
+         e.preventDefault ()
+         e.stopPropagation ()
+
+         let e: DragEvent = !!e
+
+         let firstFile = e.dataTransfer.files.item (0)
+         let firstFileBlob = firstFile.slice ()
+
+         // TODO: Handle exception from App.PNG.extract that happens on invalid png data
+         let arrayBuffer: Promise<ArrayBuffer> = firstFileBlob?arrayBuffer ()
+
+         arrayBuffer.``then`` (fun (arrayBuffer: ArrayBuffer) ->
+             let parseTextChunk (chunk: App.PNG.PNGChunk) =
+                 if chunk.name <> "tEXt" then
+                     None
+                 else
+                     let delimeterIndex = chunk.data.indexOf (uint8 (0))
+
+                     let key =
+                         createTextDecoder("utf-8")
+                             .decode(chunk.data.slice (``end`` = delimeterIndex))
+
+                     let value =
+                         createTextDecoder("utf-8")
+                             .decode(chunk.data.slice (``begin`` = delimeterIndex + 1))
+
+                     Some(key, value)
+
+
+
+             let parsedDoc: LaserEditorFeature[] option =
+                 let uint8Array = createUint8Array (arrayBuffer)
+
+                 App.PNG.extract (!^uint8Array)
+                 |> Seq.map parseTextChunk
+                 |> Seq.find (fun chunk ->
+                     match chunk with
+                     | None -> false
+                     | Some (key, _) -> key = "laser-map-editor-doc")
+                 |> Option.map (fun (_, serializedDoc) -> !!JSON.parse (serializedDoc))
+
+
+             if parsedDoc.IsNone then
+                 console.log ("No serialized doc")
+             else
+                 createdFeatures <- List.ofArray(parsedDoc.Value)
+                 console.log ("Parsed serialized doc", createdFeatures)
+
+                 let largestUsedImageId =
+                     createdFeatures
+                     |> Seq.map (fun feature -> feature.properties.id)
+                     |> Seq.max
+
+                 nextImageId <- largestUsedImageId + 1
+
+                 createdFeatures
+                 |> Seq.iter (fun feature ->
+                     let textImage =
+                         generateTextImage (feature.properties.textContent)
+
+                     let imageId: string = feature.properties.textImage
+
+                     map.addImage (imageId, !^textImage) |> ignore)
+
+                 refreshMapSource ())
+         |> ignore))
+
+map.on
+    ("load",
+     (fun () ->
+         document
+             .getElementById("save")
+             .addEventListener("click", saveImage)
+
+         map.addSource
+             ("places",
+              !!({| ``type`` = "geojson"
+                    data =
+                        {| ``type`` = "FeatureCollection"
+                           features = [||] |} |}
+                 |> toPlainJsObj))
+         |> ignore
+
+         let poiLabelsLayer =
+             {| id = "poi-labels"
+                ``type`` = "symbol"
+                source = "places"
+                layout =
+                    {| ``icon-rotate`` = [| "get"; "rotation" |]
+                       ``icon-size`` = [| "get"; "iconSize" |]
+                       ``icon-image`` = [| "get"; "textImage" |]
+                       ``icon-allow-overlap`` = true |}
+                    |> toPlainJsObj
+                paint = {| ``text-color`` = "#000000" |} |> toPlainJsObj |}
+
+             |> toPlainJsObj
+
+         map.addLayer (!!poiLabelsLayer) |> ignore
+
+         ))
+|> ignore
+
+let isFeature: (MapboxGeoJSONFeature -> bool) =
+    fun feature -> feature?``type`` = "Feature"
+
+[<Global>]
+let devicePixelRatio: float = jsNative
 
 let createFeature (coordinates: LngLat) feature =
     let featureName = extractName feature
@@ -167,14 +297,17 @@ let createFeature (coordinates: LngLat) feature =
                   coordinates = coordinates.toArray () |}
                |> toPlainJsObj
            properties =
-               {| id = imageId
-                  ``text-content`` = featureName
-                  ``text-image`` = newImageName
-                  rotation = 0
-                  ``icon-size`` = 1.0 / devicePixelRatio |}
+               jsOptions<FeatureProperties> (fun o ->
+                   o.id <- imageId
+                   o.textContent <- featureName
+                   o.textImage <- newImageName
+                   o.iconSize <- 1.0 / devicePixelRatio
+                   o.rotation <- 0
+                   ())
+               |> toPlainJsObj
                |> toPlainJsObj |}
         |> toPlainJsObj
-
+    let newFeature: LaserEditorFeature = !!newFeature
 
     createdFeatures <- newFeature :: createdFeatures
     refreshMapSource ()
@@ -186,7 +319,7 @@ let updateFeature (id) (newText: string) (newRotation: int) =
 
     updatedFeature?properties?rotation <- newRotation
 
-    let imageName = updatedFeature?properties?``text-image``
+    let imageName = updatedFeature.properties.textImage
     map.removeImage (imageName) |> ignore
 
     map.addImage (imageName, !^(generateTextImage newText))
@@ -194,19 +327,19 @@ let updateFeature (id) (newText: string) (newRotation: int) =
 
     refreshMapSource ()
 
-let mutable movingFeatureId: string = ""
+let mutable movingFeatureId: int = -1
 
 let onMove =
     (fun (e: obj option) ->
         let e: MapMouseEvent = !!e
-        
+
         let updatedFeature =
             createdFeatures
-            |> List.find (fun feature -> feature?properties?id = movingFeatureId)
-        updatedFeature?geometry?coordinates <- e.lngLat.toArray()
+            |> List.find (fun feature -> feature.properties.id = movingFeatureId)
 
-        refreshMapSource ()
-        )
+        updatedFeature?geometry?coordinates <- e.lngLat.toArray ()
+
+        refreshMapSource ())
 
 let onUp =
     (fun (e: obj option) -> map.off ("mousemove", onMove) |> ignore)
@@ -217,7 +350,7 @@ map.on
      (fun (e: obj) ->
          let e: MapMouseEvent = !!e
          movingFeatureId <- e?features.Item("0")?properties?id
-         
+
          e.preventDefault ()
          map.on ("mousemove", onMove) |> ignore
          map.once ("mouseup", onUp) |> ignore
@@ -231,7 +364,7 @@ map.on
      (fun (e: obj) ->
          let clickEvent: MapMouseEvent = !!e
          clickEvent.originalEvent.cancelBubble <- true
-         let feature: GeoJSON.Feature<GeoJSON.Point, GeoJSON.GeoJsonProperties> = !!clickEvent?features.Item("0")
+         let feature: LaserEditorFeature = !!clickEvent?features.Item("0")
 
          let popup =
              mapboxgl
@@ -268,7 +401,7 @@ let handleMapClick (clickEvent: MapMouseEvent) =
             .addTo(map)
 
     let createFeatureAndRemoveFunction a b =
-        createFeature a b |> ignore
+        createFeature a b
         popup.remove ()
 
     let poiSelectorNode =

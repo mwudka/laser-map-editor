@@ -18,3 +18,12 @@ let extractPoint (feature: MapboxGeoJSONFeature) =
         |> Option.map Mapbox.mapboxgl.LngLat.Create
     else
         None
+
+type FeatureProperties =
+    abstract iconSize: float with get, set
+    abstract rotation: int with get, set
+    abstract id: int with get, set
+    abstract textImage: string with get, set
+    abstract textContent: string with get, set
+
+type LaserEditorFeature = GeoJSON.Feature<GeoJSON.Point, FeatureProperties>
