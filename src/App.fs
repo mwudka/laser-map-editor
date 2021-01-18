@@ -157,23 +157,30 @@ let generateTextImage (feature: LaserEditorFeature) =
     context2D.getImageData (0.0, 0.0, metrics.width + 40.0, height)
 
 
-let refreshMapSource =
-    fun () ->
-        let source: GeoJSONSource = !! map.getSource ("places")
-        
 
-        let newData = jsOptions<GeoJSON.FeatureCollection<GeoJSON.Geometry>>(fun o ->
-            o.``type`` <- "FeatureCollection"
-            o.features <- Seq.toArray !!createdFeatures
-            )
-        source.setData (!^newData) |> ignore
+let refreshMapSource _ =
+    let source: GeoJSONSource = !! map.getSource ("places")
+
+    let newData = jsOptions<GeoJSON.FeatureCollection<GeoJSON.Geometry>>(fun o ->
+        o.``type`` <- "FeatureCollection"
+        o.features <- Seq.toArray !!createdFeatures
+        )
+    source.setData (!^newData) |> ignore
+
+let newDoc _ =
+    createdFeatures
+        |> Seq.map (fun feature -> feature.properties.id)
+        |> Seq.iter (fun id -> map.removeImage(id) |> ignore)
+    createdFeatures <- []
+    refreshMapSource()
 
 bodyEl.addEventListener
     ("drop",
      !!(fun (e: DragEvent) ->
          e.preventDefault ()
          e.stopPropagation ()
-
+         
+         // TODO: Handle multiple files; invalid files
          let firstFile = e.dataTransfer.files.item (0)
          let firstFileBlob = firstFile.slice ()
 
@@ -211,6 +218,8 @@ bodyEl.addEventListener
              if parsedDoc.IsNone then
                  console.log ("No serialized doc")
              else
+                 newDoc()
+                 
                  createdFeatures <- List.ofArray (parsedDoc.Value)
                  console.log ("Parsed serialized doc", createdFeatures)
 
@@ -231,6 +240,10 @@ map.on
          document
              .getElementById("save")
              .addEventListener("click", saveImage)
+             
+         document
+            .getElementById("new")
+            .addEventListener("click", newDoc)
 
          map.addSource
              ("places",
