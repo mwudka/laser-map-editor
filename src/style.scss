@@ -16,5 +16,21 @@ body {
   overflow: auto;
   list-style: none;
   padding: 0;
+}
 
+form {
+  margin: 0.3em;
+  label {
+    display: block;
+    padding: 0.5em;
+  }
+  input {
+    width: 10em;
+    display: block;
+  }
+  input[type="submit"], button {
+    display: inline;
+    width: auto;
+    margin: 0.5em;
+  }
 }

@@ -11,12 +11,13 @@
     <Compile Include="Geo.fs" />
     <Compile Include="PNG.fs" />
     <Compile Include="UI.fs" />
-    <Compile Include="App.fs" />
     <Content Include="style.scss" />
     <Content Include="index.html" />
+    <Compile Include="App.fs" />
   </ItemGroup>
   <ItemGroup>
     <PackageReference Include="Fable.Browser.Dom" Version="2.2.0" />
+    <PackageReference Include="Fable.Import.Browser" Version="1.4.0" />
     <PackageReference Include="Fable.Browser.Event" Version="1.2.1" />
     <PackageReference Include="Fable.Browser.Navigator" Version="1.1.0" />
     <PackageReference Include="Fable.Browser.WebGL" Version="1.0.0" />

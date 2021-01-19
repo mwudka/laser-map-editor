@@ -12,7 +12,7 @@ This is a small Fable app project so you can easily get started and add your own
 
 * Install JS dependencies: `npm install`
 * Install F# dependencies: `npm start`
-* After the first compilation is finished, in your browser open: http://localhost:8080/
+* After the first compilation is finished, in your browser open: http://localhost:8080/#mapbox-token=pk.XXX.YYY
 
 Any modification you do to the F# code will be reflected in the web page after saving.
 

@@ -1,5 +1,4 @@
 module rec App.URL
-open Browser
 open Fable.Core
 let [<Emit("URL")>] URL: URLStatic = jsNative
 
