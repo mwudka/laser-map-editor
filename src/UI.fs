@@ -24,6 +24,7 @@ let potentialPOIButton (clickedLocation: LngLat) createFeature (feature: MapboxG
 
     link.onclick <- fun _ -> createFeature newFeatureLocation feature
     link.setAttribute ("href", "#")
+    link.addEventListener("click", fun e -> e.preventDefault())
     link.innerText <- Geo.extractName feature
     let li = document.createElement ("li")
     li.appendChild (link) |> ignore
