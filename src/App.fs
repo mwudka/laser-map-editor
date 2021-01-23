@@ -140,7 +140,13 @@ let generateTextImage (feature: LaserEditorFeature) =
     canvasEl.width <- 1000.0
     canvasEl.height <- 1000.0
     let context2D = canvasEl.getContext_2d ()
-    context2D.font <- sprintf "%dpx serif" feature.properties.fontSize
+    
+    let family = match feature.properties.font with
+                 | None -> "sans-serif"
+                 | Some(font) -> font.Family
+                
+    
+    context2D.font <- sprintf "%dpx %s" feature.properties.fontSize family
     context2D.textBaseline <- "middle"
     let metrics = context2D.measureText (feature.properties.textContent)
 
@@ -186,7 +192,7 @@ bodyEl.addEventListener
 
          // TODO: Handle exception from App.PNG.extract that happens on invalid png data
          let arrayBuffer: Promise<ArrayBuffer> = firstFileBlob?arrayBuffer ()
-
+         
          arrayBuffer.``then`` (fun (arrayBuffer: ArrayBuffer) ->
              let parseTextChunk (chunk: App.PNG.PNGChunk) =
                  console.log(chunk)
@@ -224,16 +230,26 @@ bodyEl.addEventListener
                  newDoc()
                  map.fitBounds(!^parsedDoc.BoundingBox) |> ignore
                  createdFeatures <- List.ofArray (parsedDoc.Features)
-                
-                 createdFeatures
-                 |> Seq.iter (fun feature ->
-                     let textImage = generateTextImage feature
-
-                     let imageId = feature.properties.id
-
-                     map.addImage (imageId, !^textImage) |> ignore)
-
-                 refreshMapSource ())
+                 
+                 let loadFontPromises = createdFeatures |> Seq.map(fun f ->
+                     match f.properties.font with
+                     | None -> Constructors.Promise.resolve()
+                     | Some(font) -> FontPicker.createFontFace(font.Family, sprintf "url(%s)" font.URL).load().``then``(fun loadedFont ->
+                         document?fonts?add(loadedFont)
+                         )
+                     )
+                 let loadFontPromises = Seq.toArray loadFontPromises
+                 
+                 Constructors.Promise.all(loadFontPromises).``then``(fun _ ->
+                     console.log("Loaded fonts")
+                     createdFeatures |> Seq.iter (fun feature ->
+                         let textImage = generateTextImage feature
+                         let imageId = feature.properties.id
+                         map.addImage (imageId, !^textImage) |> ignore
+                     )
+                     refreshMapSource()
+                     ) |> ignore
+                 )
          |> ignore))
 
 map.on
@@ -312,7 +328,7 @@ let createFeature (coordinates: LngLat) feature =
     createdFeatures <- newFeature :: createdFeatures
     refreshMapSource ()
 
-let updateFeature (id: string) (newText: string) (newRotation: int) (newFontSize: int) =
+let updateFeature (id: string) (newText: string) (newRotation: int) (newFontInfo: FontInfo option) (newFontSize: int) =
     console.log("Applying changes to feature id", id)
     let updatedFeature =
         createdFeatures
@@ -320,7 +336,7 @@ let updateFeature (id: string) (newText: string) (newRotation: int) (newFontSize
 
     updatedFeature.properties.rotation <- newRotation
     updatedFeature.properties.textContent <- newText
-    updatedFeature.properties.fontSize <- newFontSize
+    updatedFeature.properties.font <- newFontInfo
 
     let imageName = updatedFeature.properties.id
     map.removeImage (imageName) |> ignore
@@ -380,6 +396,8 @@ map.on
          clickEvent.originalEvent.cancelBubble <- true
          
          let feature: LaserEditorFeature = !!clickEvent.features.Item("0")
+         let feature = createdFeatures |> List.find(fun f -> f.properties.id = feature.properties.id)
+         
 
          let popup =
              mapboxgl
@@ -388,18 +406,24 @@ map.on
                  .setLngLat(!^feature.geometry.coordinates)
                  .addTo(map)
 
-         let updateFeatureAndRemove a b c d =
-             updateFeature a b c d
+         let updateFeatureAndRemove a b c d e =
+             updateFeature a b c d e
              popup.remove () |> ignore
              
          let deleteFeatureAndRemove a =
              deleteFeature a
              popup.remove() |> ignore
 
-         let poiEditorNode =
-             App.UI.poiEditor feature updateFeatureAndRemove deleteFeatureAndRemove
+         let poiEditorNode = document.createElement("div")
+         
+         popup.setDOMContent (poiEditorNode) |> ignore
+         
+         console.log(feature.properties.font)
+         console.log(createdFeatures)
+         
+         App.UI.poiEditor poiEditorNode feature updateFeatureAndRemove deleteFeatureAndRemove
 
-         popup.setDOMContent (poiEditorNode) |> ignore))
+         ))
 |> ignore
 
 

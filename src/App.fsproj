@@ -4,6 +4,7 @@
   </PropertyGroup>
   <ItemGroup>
     <Compile Include="ShortUUID.fs" />
+    <Compile Include="FontPicker.fs" />
     <Compile Include="GeoJSON.fs" />
     <Compile Include="Mapbox.fs" />
     <Compile Include="MapboxGeocoder.fs" />
