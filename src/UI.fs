@@ -122,10 +122,6 @@ let poiEditor (container: HTMLElement)
              |> Option.defaultValue ("Open Sans"),
              jsOptions<FontPickerOptions> (fun o -> o.limit <- 250))
 
-    feature.properties.font
-    |> Option.map (fun f -> fontPicker.setActiveFont f.Family)
-    |> ignore
-
     form.onsubmit <-
         (fun (e: Event) ->
             e.preventDefault ()

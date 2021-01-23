@@ -325,7 +325,7 @@ let createFeature (coordinates: LngLat) feature =
     refreshMapSource ()
 
 let updateFeature (id: string) (newText: string) (newRotation: int) (newFontInfo: FontInfo option) (newFontSize: int) =
-    console.log("Applying changes to feature id", id)
+    console.log("Applying changes to feature id", id, newFontInfo)
     let updatedFeature =
         createdFeatures
         |> List.find (fun feature -> feature.properties.id = id)
