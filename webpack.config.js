@@ -9,6 +9,7 @@ var webpack = require('webpack');
 var HtmlWebpackPlugin = require('html-webpack-plugin');
 var CopyWebpackPlugin = require('copy-webpack-plugin');
 var MiniCssExtractPlugin = require('mini-css-extract-plugin');
+var DotenvPlugin = require('dotenv-webpack');
 var CONFIG = {
     // The tags to include the generated JS and CSS will be automatically injected in the HTML template
     // See https://github.com/jantimon/html-webpack-plugin
@@ -18,7 +19,6 @@ var CONFIG = {
     outputDir: './dist',
     assetsDir: './public',
     publicPath: isProduction ? '/laser-map-editor' : '/', // Where the bundled files are accessible relative to server root
-    devServerPort: 8080,
     // When using webpack-dev-server, you may need to redirect some calls
     // to a external API server. See https://webpack.js.org/configuration/dev-server/#devserver-proxy
     devServerProxy: undefined,
@@ -52,9 +52,9 @@ var commonPlugins = [
         filename: 'index.html',
         template: resolve(CONFIG.indexHtmlTemplate)
     }),
-    new webpack.EnvironmentPlugin({
-        GOOGLE_FONTS_API_KEY: 'AIzaSyDWQV2yhe8glqnEWW4jrJk18z8wL5mkPww',
-        MAPBOX_API_KEY: 'pk.eyJ1IjoibXd1ZGthIiwiYSI6ImNraXhva29veDBtd3Mycm0wMTVtMmx4dXoifQ._3QauG82dcJHW7pNWU4aoA'
+    new DotenvPlugin({
+        silent: false,
+        defaults: 'production.env'
     })
 
 ];
@@ -117,7 +117,6 @@ module.exports = {
         publicPath: CONFIG.publicPath,
         contentBase: resolve(CONFIG.assetsDir),
         host: '0.0.0.0',
-        port: CONFIG.devServerPort,
         proxy: CONFIG.devServerProxy,
         hot: true,
         inline: true
