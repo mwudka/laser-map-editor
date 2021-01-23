@@ -135,6 +135,16 @@ let poiEditor (container: HTMLElement)
             let fontURL: string option =
                 activeFont.files
                 |> Option.map (fun f -> f?regular)
+                |> Option.map (fun url ->
+                    // The fontpicker returns http URLs,
+                    // which cause mixed content errors when the
+                    // app is served from https. To avoid this,
+                    // force the protocol to https. 
+                    let url = Browser.URL.Create(url)
+                    url.protocol <- "https"
+                    url.toString()
+                    )
+                
 
             let fontInfo: JS.Promise<FontInfo option> =
                 match fontURL with
