@@ -51,7 +51,12 @@ var commonPlugins = [
     new HtmlWebpackPlugin({
         filename: 'index.html',
         template: resolve(CONFIG.indexHtmlTemplate)
+    }),
+    new webpack.EnvironmentPlugin({
+        GOOGLE_FONTS_API_KEY: 'AIzaSyDWQV2yhe8glqnEWW4jrJk18z8wL5mkPww',
+        MAPBOX_API_KEY: 'pk.eyJ1IjoibXd1ZGthIiwiYSI6ImNraXhva29veDBtd3Mycm0wMTVtMmx4dXoifQ._3QauG82dcJHW7pNWU4aoA'
     })
+
 ];
 
 module.exports = {

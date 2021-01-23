@@ -116,7 +116,7 @@ let poiEditor (container: HTMLElement)
 
     let fontPicker =
         FontPicker.Create
-            ("AIzaSyDWQV2yhe8glqnEWW4jrJk18z8wL5mkPww",
+            (Config.GOOGLE_FONTS_API_KEY,
              feature.properties.font
              |> Option.map (fun f -> f.Family)
              |> Option.defaultValue ("Open Sans"),

@@ -3,6 +3,7 @@
     <TargetFramework>netstandard2.0</TargetFramework>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="Config.fs" />
     <Compile Include="ShortUUID.fs" />
     <Compile Include="FontPicker.fs" />
     <Compile Include="GeoJSON.fs" />

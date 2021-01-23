@@ -20,11 +20,7 @@ let localStorageBoundingBoxKey = "boundingbox"
 
 let mutable createdFeatures: LaserEditorFeature list = []
 
-let hashParams = Fable.Import.Browser.URLSearchParams.Create(window.document.location.hash.Substring(1))
-// To prevent abuse, the production mapbox token is configured to only work on the production site. Because of that
-// configuration, it doesn't work when developing locally. To allow local development, this snippet checks for a
-// mapbox-token param in the hash, and if present uses it to override the hard-coded mapbox token
-mapboxgl.accessToken <- defaultArg (hashParams.get("mapbox-token")) "pk.eyJ1IjoibXd1ZGthIiwiYSI6ImNraXhva29veDBtd3Mycm0wMTVtMmx4dXoifQ._3QauG82dcJHW7pNWU4aoA"
+mapboxgl.accessToken <- App.Config.MAPBOX_API_KEY
 
 let map =
     mapboxgl.Map.Create

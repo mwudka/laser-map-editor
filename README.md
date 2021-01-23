@@ -11,7 +11,8 @@ This is a small Fable app project so you can easily get started and add your own
 ## Building and running the app
 
 * Install JS dependencies: `npm install`
-* Install F# dependencies: `npm start`
+* Configure environment variables: `envchain --set laser-map-editor GOOGLE_FONTS_API_KEY MAPBOX_API_KEY`  
+* Install F# dependencies: `envchain laser-map-editor npm start`
 * After the first compilation is finished, in your browser open: http://localhost:8080/#mapbox-token=pk.XXX.YYY
 
 Any modification you do to the F# code will be reflected in the web page after saving.
