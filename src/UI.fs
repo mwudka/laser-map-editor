@@ -94,7 +94,7 @@ let poiEditor (container: HTMLElement)
     fontSizeEl.value <- string (feature.properties.fontSize)
     fontSizeEl.``type`` <- "number"
     fontSizeEl.min <- "1"
-    fontSizeEl.max <- "70"
+    fontSizeEl.max <- "200"
 
     form.appendChild (labelElement "Font Size" fontSizeEl)
     |> ignore
