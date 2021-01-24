@@ -333,6 +333,7 @@ let updateFeature (id: string) (newText: string) (newRotation: int) (newFontInfo
     updatedFeature.properties.rotation <- newRotation
     updatedFeature.properties.textContent <- newText
     updatedFeature.properties.font <- newFontInfo
+    updatedFeature.properties.fontSize <- newFontSize
 
     let imageName = updatedFeature.properties.id
     map.removeImage (imageName) |> ignore
@@ -366,7 +367,7 @@ let onMove =
     )
 
 let onUp =
-    (fun (e: obj option) ->
+    (fun (_: obj option) ->
         map.off ("mousemove", onMove) |> ignore
         movingPOIId <- None
     )
