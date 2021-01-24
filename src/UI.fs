@@ -114,39 +114,47 @@ let poiEditor (container: HTMLElement)
 
     form.appendChild (delete) |> ignore
 
+    let currentFontFamily =
+        feature.properties.font
+        |> Option.map (fun f -> f.Family)
+        |> Option.defaultValue ("Open Sans")
+
     let fontPicker =
         FontPicker.Create
-            (Config.GOOGLE_FONTS_API_KEY,
-             feature.properties.font
-             |> Option.map (fun f -> f.Family)
-             |> Option.defaultValue ("Open Sans"),
-             jsOptions<FontPickerOptions> (fun o -> o.limit <- 250))
+            (Config.GOOGLE_FONTS_API_KEY, currentFontFamily, jsOptions<FontPickerOptions> (fun o -> o.limit <- 250))
+
+    let mutable fontPickerChanged = false
+
+    fontPicker.setOnChange (fun _ ->
+        console.log ("Font picker selection changed")
+        fontPickerChanged <- true)
 
     form.onsubmit <-
         (fun (e: Event) ->
             e.preventDefault ()
-            let activeFont = fontPicker.getActiveFont ()
-            console.log ("selected font", activeFont)
 
-            let fontURL: string option =
+            let previouslySelectedFont =
+                JS.Constructors.Promise.resolve (feature.properties.font)
+
+            let activeFont = fontPicker.getActiveFont ()
+            // HACK: The FontPicker component has an unfortunate issue: if a default family is selected,
+            // it will appear selected but getActiveFont() doesn't return the URL. Obviously, that breaks
+            // things. To work around this sad issue, we need to detect that case and only use the return
+            // value of fontPicker.getActiveFont() when the user changes the font selection. If the user
+            // hasn't changed the font selection, we should just keep the old value
+            let selectedFont =
                 activeFont.files
                 |> Option.map (fun f -> f?regular)
                 |> Option.map (fun url ->
                     // The fontpicker returns http URLs,
                     // which cause mixed content errors when the
                     // app is served from https. To avoid this,
-                    // force the protocol to https. 
+                    // force the protocol to https.
                     let url = Browser.URL.Create(url)
                     url.protocol <- "https"
-                    url.toString()
-                    )
-                
-
-            let fontInfo: JS.Promise<FontInfo option> =
-                match fontURL with
-                | None -> JS.Constructors.Promise.resolve (None)
-                | Some (fontURL) ->
-                    let fontSource = sprintf "url(%s)" fontURL
+                    url.toString ())
+                |> Option.map (fun url ->
+                    let fontSource = sprintf "url(%s)" url
 
                     createFontFace(activeFont.family, fontSource)
                         .load()
@@ -156,9 +164,12 @@ let poiEditor (container: HTMLElement)
 
                             Some
                                 ({ Family = activeFont.family
-                                   URL = fontURL }))
+                                   URL = url }))
 
-            fontInfo.``then`` (fun p ->
+                    )
+                |> Option.defaultValue (previouslySelectedFont)
+
+            selectedFont.``then`` (fun p ->
                 performUpdate feature.properties.id textEl.value (int rotationEl.value) p (int fontSizeEl.value))
             |> ignore
 
