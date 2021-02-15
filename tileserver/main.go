@@ -57,11 +57,12 @@ WITH
             ),
             mvtgeom AS (
                SELECT ST_AsMVTGeom(ST_Transform(t.geom, 3857), bounds.b2d) AS geom,
-                        hstore_to_jsonb(slice(tags, ARRAY['highway', 'building'])) as tags
+                        hstore_to_jsonb(slice(tags, ARRAY['highway', 'building'])) as tags,
+						t.osm_id as id
                 FROM osm_data t, bounds
                 WHERE ST_Intersects(t.geom, ST_Transform(bounds.geom, 3857))
             )
-            SELECT ST_AsMVT(mvtgeom.*) FROM mvtgeom`, boundsSql, boundsSql)
+            SELECT ST_AsMVT(mvtgeom.*, 'default', 4096, 'geom', 'id') FROM mvtgeom`, boundsSql, boundsSql)
 
 	fmt.Printf("Query:\n%s\n", query)
 
