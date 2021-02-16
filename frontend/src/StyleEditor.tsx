@@ -1,4 +1,3 @@
-import { Style } from 'mapbox-gl';
 import { useState } from 'react';
 import './StyleEditor.css';
 

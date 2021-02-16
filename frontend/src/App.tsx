@@ -17,6 +17,11 @@ function App() {
     hoveredFeature,
     setHoveredFeature,
   ] = useState<MapboxGeoJSONFeature | null>(null)
+  const [style, setStyle] = useState<StyleDef>({
+    highwayColor: '#ff0000',
+    highwayWidth: 3,
+    buildingColor: '#00ff00',
+  })
 
   useEffect(() => {
     console.log('Creating mapboxgl map')
@@ -44,7 +49,6 @@ function App() {
             minzoom: 14,
             maxzoom: 22,
             paint: {
-              'line-opacity': 0.7,
               'line-color': [
                 'case',
                 ['boolean', ['feature-state', 'hover'], false],
@@ -138,7 +142,8 @@ function App() {
   }, [])
 
   function onStyleChange(style: StyleDef) {
-    console.log('style changed', style)
+    console.log('style changed', style);
+    setStyle(style);
     const mapboxStyle: mapboxgl.Style = {
       version: 8,
       sources: {
@@ -158,7 +163,6 @@ function App() {
           minzoom: 14,
           maxzoom: 22,
           paint: {
-            'line-opacity': 0.7,
             'line-color': style.highwayColor,
             'line-width': style.highwayWidth,
           },
@@ -183,7 +187,7 @@ function App() {
 
   return (
     <div>
-      {stateMap && <Exporter map={stateMap}></Exporter>}
+      {stateMap && <Exporter map={stateMap} style={style}></Exporter>}
       <pre>{JSON.stringify(hoveredFeature)}</pre>
 
       <SplitPane split="vertical" minSize={200}>
