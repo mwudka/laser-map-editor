@@ -8,30 +8,20 @@ export interface StyleDef {
 }
 
 interface StyleEditorProps {
+    style: StyleDef,
     onStyleChange: (style: StyleDef) => void
 }
 
-export default function StyleEditor({onStyleChange}: StyleEditorProps) {
-    const [styleDef, setStyleDef] = useState({
-        highwayColor: '#ff0000',
-        highwayWidth: 3,
-        buildingColor: '#00ff00',
-    })
-
-    function updateStyle(newStyle: StyleDef) {
-        setStyleDef(newStyle)
-        onStyleChange(newStyle)
-    }
-
+export default function StyleEditor({style, onStyleChange}: StyleEditorProps) {
     return <table className="styleEditor">
         <tr>
             <td>Highway</td>
-            <td><input type="color" value={styleDef.highwayColor} onChange={e => updateStyle({...styleDef, highwayColor: e.target.value})}/></td>
-            <td><input type="range" value={styleDef.highwayWidth} onChange={e => updateStyle({...styleDef, highwayWidth: parseInt(e.target.value, 10)})} min={1} max={10}/></td>
+            <td><input type="color" value={style.highwayColor} onChange={e => onStyleChange({...style, highwayColor: e.target.value})}/></td>
+            <td><input type="range" value={style.highwayWidth} onChange={e => onStyleChange({...style, highwayWidth: parseInt(e.target.value, 10)})} min={1} max={10}/></td>
         </tr>        
         <tr>
             <td>Building</td>
-            <td><input type="color" value={styleDef.buildingColor} onChange={e => updateStyle({...styleDef, buildingColor: e.target.value})}/></td>
+            <td><input type="color" value={style.buildingColor} onChange={e => onStyleChange({...style, buildingColor: e.target.value})}/></td>
         </tr>        
         
 

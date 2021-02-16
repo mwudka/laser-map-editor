@@ -5,7 +5,8 @@ import SplitPane, { Pane } from 'react-split-pane'
 import './App.css'
 import './Resizer.css'
 import Exporter from './Exporter'
-import StyleEditor, { StyleDef } from './StyleEditor'
+import StyleEditor, { StyleDef } from './StyleEditor';
+import compileMapboxStyle from './compileMapboxStyle';
 
 function App() {
   const mapContainer = useRef<HTMLDivElement>(null)
@@ -20,7 +21,7 @@ function App() {
   const [style, setStyle] = useState<StyleDef>({
     highwayColor: '#ff0000',
     highwayWidth: 3,
-    buildingColor: '#00ff00',
+    buildingColor: '#999999',
   })
 
   useEffect(() => {
@@ -30,49 +31,7 @@ function App() {
       center: [lng, lat],
       zoom: zoom,
       minZoom: 14,
-      style: {
-        version: 8,
-        sources: {
-          'postgis-tiles': {
-            type: 'vector',
-            tiles: ['http://localhost:8082/{z}/{x}/{y}'],
-          },
-        },
-        layers: [
-          {
-            id: 'postgis-tiles-layer',
-            type: 'line',
-            source: 'postgis-tiles',
-            // ST_AsMVT() uses 'default' as layer name
-            'source-layer': 'default',
-            filter: ['has', 'highway'],
-            minzoom: 14,
-            maxzoom: 22,
-            paint: {
-              'line-color': [
-                'case',
-                ['boolean', ['feature-state', 'hover'], false],
-                'red',
-                'green',
-              ],
-              'line-width': 1,
-            },
-          },
-          {
-            id: 'postgis-tiles-layer2',
-            type: 'fill',
-            source: 'postgis-tiles',
-            // ST_AsMVT() uses 'default' as layer name
-            'source-layer': 'default',
-            filter: ['has', 'building'],
-            minzoom: 14,
-            maxzoom: 22,
-            paint: {
-              'fill-color': '#999999',
-            },
-          },
-        ],
-      },
+      style: compileMapboxStyle(style),
     })
 
     var hoveredStateId: number | string | null
@@ -144,45 +103,7 @@ function App() {
   function onStyleChange(style: StyleDef) {
     console.log('style changed', style);
     setStyle(style);
-    const mapboxStyle: mapboxgl.Style = {
-      version: 8,
-      sources: {
-        'postgis-tiles': {
-          type: 'vector',
-          tiles: ['http://localhost:8082/{z}/{x}/{y}'],
-        },
-      },
-      layers: [
-        {
-          id: 'postgis-tiles-layer',
-          type: 'line',
-          source: 'postgis-tiles',
-          // ST_AsMVT() uses 'default' as layer name
-          'source-layer': 'default',
-          filter: ['has', 'highway'],
-          minzoom: 14,
-          maxzoom: 22,
-          paint: {
-            'line-color': style.highwayColor,
-            'line-width': style.highwayWidth,
-          },
-        },
-        {
-          id: 'postgis-tiles-layer2',
-          type: 'fill',
-          source: 'postgis-tiles',
-          // ST_AsMVT() uses 'default' as layer name
-          'source-layer': 'default',
-          filter: ['has', 'building'],
-          minzoom: 14,
-          maxzoom: 22,
-          paint: {
-            'fill-color': style.buildingColor,
-          },
-        },
-      ],
-    }
-    stateMap?.setStyle(mapboxStyle, { diff: true })
+    stateMap?.setStyle(compileMapboxStyle(style), { diff: true })
   }
 
   return (
@@ -192,7 +113,7 @@ function App() {
 
       <SplitPane split="vertical" minSize={200}>
         <Pane className="pane">
-          <StyleEditor onStyleChange={onStyleChange} />
+          <StyleEditor style={style} onStyleChange={onStyleChange} />
         </Pane>
         <div ref={mapContainer} className="mapContainer" />
       </SplitPane>
