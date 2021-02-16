@@ -1,0 +1,7 @@
+.styleEditor {
+    width: 100%;
+}
+
+.styleEditor input[type="range"] {
+    width: 50px;
+}
