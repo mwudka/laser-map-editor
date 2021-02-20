@@ -7,6 +7,7 @@ import './Resizer.css'
 import Exporter from './Exporter'
 import StyleEditor, { StyleDef } from './StyleEditor'
 import compileMapboxStyle from './compileMapboxStyle'
+import FeatureInfo from './FeatureInfo'
 
 function App() {
   const mapContainer = useRef<HTMLDivElement>(null)
@@ -84,7 +85,7 @@ function App() {
 
     setStateMap(map)
 
-    map.showTileBoundaries = true;
+    map.showTileBoundaries = true
 
     return () => {
       console.log('Removing map')
@@ -104,16 +105,16 @@ function App() {
   return (
     <div>
       {stateMap && <Exporter map={stateMap} style={style}></Exporter>}
-      <code>
-        {JSON.stringify(
-          hoveredFeatures.map((f) => ({ ...f.properties, id: f.id }))
-        )}
-      </code>
+      <SplitPane split="vertical" minSize={300}>
+        <SplitPane split="horizontal" minSize={200}>
+          <Pane className="pane">
+            <StyleEditor style={style} onStyleChange={onStyleChange} />
+          </Pane>
+          <Pane className="pane">
+            <FeatureInfo features={hoveredFeatures}/>
+          </Pane>
+        </SplitPane>
 
-      <SplitPane split="vertical" minSize={200}>
-        <Pane className="pane">
-          <StyleEditor style={style} onStyleChange={onStyleChange} />
-        </Pane>
         <div ref={mapContainer} className="mapContainer" />
       </SplitPane>
     </div>
