@@ -1,11 +1,23 @@
 import { StyleDef } from './StyleEditor'
 import mapboxgl from 'mapbox-gl'
 
+function wrapInHoverDetection(expression: string | mapboxgl.StyleFunction | mapboxgl.Expression | undefined): mapboxgl.Expression {
+  return [
+    'case',
+    ['boolean', ['feature-state', 'hover'], false],
+    '#ff0000',
+    expression,
+  ]
+}
+
 function compileLineLayer(
   id: string,
   filter: any[],
   paint: mapboxgl.LinePaint
 ): mapboxgl.LineLayer {
+  // TODO: Don't assume line-color is set
+  paint['line-color'] = wrapInHoverDetection(paint['line-color']);
+
   return {
     id,
     filter,
@@ -24,6 +36,10 @@ function compileFillLayer(
   filter: any[],
   paint: mapboxgl.FillPaint
 ): mapboxgl.FillLayer {
+
+  // TODO: Don't assume fill-color is set
+  paint['fill-color'] = wrapInHoverDetection(paint['fill-color']);
+
   return {
     id,
     filter,
@@ -49,13 +65,6 @@ export default function compileMapboxStyle(style: StyleDef): mapboxgl.Style {
       },
     },
     layers: [
-      compileLineLayer(nextId(), ['has', 'highway'], {
-        'line-color': style.highwayColor,
-        'line-width': style.highwayWidth,
-      }),
-      compileFillLayer(nextId(), ['has', 'building'], {
-        'fill-color': style.buildingColor,
-      }),
       compileFillLayer(nextId(), ['==', 'park', ['get', 'leisure']], {
         'fill-color': style.parkColor,
       }),
@@ -65,6 +74,13 @@ export default function compileMapboxStyle(style: StyleDef): mapboxgl.Style {
       compileFillLayer(nextId(), ['==', 'water', ['get', 'natural']], {
         'fill-color': style.waterColor,
       }),
+      compileLineLayer(nextId(), ['has', 'highway'], {
+        'line-color': style.highwayColor,
+        'line-width': style.highwayWidth,
+      }),
+      compileFillLayer(nextId(), ['has', 'building'], {
+        'fill-color': style.buildingColor,
+      }),      
     ],
   }
 }

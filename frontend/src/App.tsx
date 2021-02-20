@@ -5,8 +5,8 @@ import SplitPane, { Pane } from 'react-split-pane'
 import './App.css'
 import './Resizer.css'
 import Exporter from './Exporter'
-import StyleEditor, { StyleDef } from './StyleEditor';
-import compileMapboxStyle from './compileMapboxStyle';
+import StyleEditor, { StyleDef } from './StyleEditor'
+import compileMapboxStyle from './compileMapboxStyle'
 
 function App() {
   const mapContainer = useRef<HTMLDivElement>(null)
@@ -14,12 +14,11 @@ function App() {
   const [lng, setLng] = useState(-120.61054884999999)
   const [lat, setLat] = useState(35.125492550000004)
   const [zoom, setZoom] = useState(16)
-  const [
-    hoveredFeature,
-    setHoveredFeature,
-  ] = useState<MapboxGeoJSONFeature | null>(null)
+  const [hoveredFeatures, setHoveredFeatures] = useState<
+    MapboxGeoJSONFeature[]
+  >([])
   const [style, setStyle] = useState<StyleDef>({
-    highwayColor: '#ff0000',
+    highwayColor: '#444444',
     highwayWidth: 3,
     buildingColor: '#999999',
     parkColor: '#00ff00',
@@ -35,55 +34,46 @@ function App() {
       zoom: zoom,
       minZoom: 14,
       style: compileMapboxStyle(style),
+      hash: true,
     })
 
-    var hoveredStateId: number | string | null
     map.on('move', () => {
       setLng(map.getCenter().lng)
       setLat(map.getCenter().lat)
       setZoom(map.getZoom())
     })
-    map.on('mousemove', 'postgis-tiles-layer', (e) => {
-      if (e.features!.length > 0) {
-        if (hoveredStateId) {
-          map.setFeatureState(
-            {
-              source: 'postgis-tiles',
-              sourceLayer: 'default',
-              id: hoveredStateId,
-            },
-            { hover: false }
-          )
-        }
-        let newHoveredStateId = e.features![0].id!
-        hoveredStateId = newHoveredStateId
-        setHoveredFeature(e.features![0])
-        map.setFeatureState(
-          {
-            source: 'postgis-tiles',
-            sourceLayer: 'default',
-            id: newHoveredStateId,
-          },
-          { hover: true }
-        )
-      } else {
-        setHoveredFeature(null)
+
+    let hoveredFeatures: mapboxgl.MapboxGeoJSONFeature[] = []
+    function setHoverState(
+      feature: mapboxgl.MapboxGeoJSONFeature,
+      hover: boolean
+    ) {
+      map.setFeatureState(
+        {
+          source: feature.source,
+          sourceLayer: feature.sourceLayer,
+          id: feature.id,
+        },
+        { hover }
+      )
+    }
+    map.on('mousemove', (e) => {
+      hoveredFeatures.forEach((f) => setHoverState(f, false))
+
+      hoveredFeatures = map.queryRenderedFeatures(e.point)
+      hoveredFeatures.forEach((f) => setHoverState(f, true))
+      map.getCanvas().style.cursor = hoveredFeatures.length > 0 ? 'pointer' : ''
+      if (hoveredFeatures.length > 0) {
+        hoveredFeatures.forEach(console.log)
       }
+      setHoveredFeatures(hoveredFeatures)
     })
-    map.on('mouseleave', 'postgis-tiles-layer', () => {
-      if (hoveredStateId) {
-        map.setFeatureState(
-          {
-            source: 'postgis-tiles',
-            sourceLayer: 'default',
-            id: hoveredStateId,
-          },
-          { hover: false }
-        )
-      }
-      setHoveredFeature(null)
-      hoveredStateId = null
+    map.on('mouseout', (e) => {
+      hoveredFeatures.forEach((f) => setHoverState(f, false))
+      hoveredFeatures = []
+      setHoveredFeatures(hoveredFeatures)
     })
+
     map.addControl(
       new MapboxGeocoder({
         accessToken: mapboxgl.accessToken,
@@ -93,6 +83,8 @@ function App() {
     )
 
     setStateMap(map)
+
+    map.showTileBoundaries = true;
 
     return () => {
       console.log('Removing map')
@@ -104,15 +96,19 @@ function App() {
   }, [])
 
   function onStyleChange(style: StyleDef) {
-    console.log('style changed', style);
-    setStyle(style);
+    console.log('style changed', style)
+    setStyle(style)
     stateMap?.setStyle(compileMapboxStyle(style), { diff: true })
   }
 
   return (
     <div>
       {stateMap && <Exporter map={stateMap} style={style}></Exporter>}
-      <pre>{JSON.stringify(hoveredFeature)}</pre>
+      <code>
+        {JSON.stringify(
+          hoveredFeatures.map((f) => ({ ...f.properties, id: f.id }))
+        )}
+      </code>
 
       <SplitPane split="vertical" minSize={200}>
         <Pane className="pane">
