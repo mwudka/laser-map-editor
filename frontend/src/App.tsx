@@ -64,9 +64,6 @@ function App() {
       hoveredFeatures = map.queryRenderedFeatures(e.point).slice(0, 1);
       hoveredFeatures.forEach((f) => setHoverState(f, true))
       map.getCanvas().style.cursor = hoveredFeatures.length > 0 ? 'pointer' : ''
-      if (hoveredFeatures.length > 0) {
-        hoveredFeatures.forEach(console.log)
-      }
       setHoveredFeatures(hoveredFeatures)
     })
     map.on('mouseout', (e) => {
