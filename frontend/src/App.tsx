@@ -22,6 +22,9 @@ function App() {
     highwayColor: '#ff0000',
     highwayWidth: 3,
     buildingColor: '#999999',
+    parkColor: '#00ff00',
+    waterColor: '#0000ff',
+    beachColor: '#ffff00',
   })
 
   useEffect(() => {

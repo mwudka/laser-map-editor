@@ -27,11 +27,15 @@ export default function Exporter({map, style}: {map: mapboxgl.Map, style: StyleD
             if (properties!['highway']) {
                 path.stroke({color: style.highwayColor, width: style.highwayWidth}).fill('none');
             }
+            if (properties!["leisure"] === "park") {
+                path.fill(style.parkColor);
+            }
             
         }
 
         const buildingsGroup = svg.group();
         const highwaysGroup = svg.group();
+        const parksGroup = svg.group();
 
         map?.queryRenderedFeatures().forEach(feature => {
             let group: SVGContainer;
@@ -39,6 +43,8 @@ export default function Exporter({map, style}: {map: mapboxgl.Map, style: StyleD
                 group = buildingsGroup;
             } else if (feature.properties!["highway"]) {
                 group = highwaysGroup;
+            } else if (feature.properties!["leisure"] === "park") {
+                group = parksGroup;
             } else {
                 return;
             }
