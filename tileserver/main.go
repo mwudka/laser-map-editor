@@ -56,8 +56,9 @@ WITH
                        %s::box2d AS b2d
             ),
             mvtgeom AS (
-               SELECT ST_AsMVTGeom(ST_Transform(t.geom, 3857), bounds.b2d) AS geom,
-                        hstore_to_jsonb(slice(tags, ARRAY['highway', 'building', 'leisure', 'natural'])) as tags,
+               SELECT
+				ST_AsMVTGeom(ST_Transform(t.geom, 3857), bounds.b2d, buffer=>4096) AS geom,
+                        hstore_to_jsonb(tags) as tags,
 						t.osm_id as id
                 FROM osm_data t, bounds
                 WHERE ST_Intersects(t.geom, ST_Transform(bounds.geom, 3857))
