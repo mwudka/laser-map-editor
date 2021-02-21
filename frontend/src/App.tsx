@@ -1,47 +1,59 @@
-import { useState, useRef, useEffect } from 'react'
+import React, { useState, useRef, useEffect } from 'react'
 import mapboxgl, { MapboxGeoJSONFeature } from 'mapbox-gl'
 import MapboxGeocoder from '@mapbox/mapbox-gl-geocoder'
 import SplitPane, { Pane } from 'react-split-pane'
 import './App.css'
 import './Resizer.css'
 import Exporter from './Exporter'
-import StyleEditor, { StyleDef } from './StyleEditor'
+import StyleEditor, { FillStyle, LineStyle, StyleDef, StyleFilter } from './StyleEditor'
 import compileMapboxStyle from './compileMapboxStyle'
 import FeatureInfo from './FeatureInfo'
+import ReactDOM from 'react-dom'
+import StyleRuleCreator from './StyleRuleCreator'
 
 function App() {
   const mapContainer = useRef<HTMLDivElement>(null)
   const [stateMap, setStateMap] = useState<mapboxgl.Map>()
-  const [lng, setLng] = useState(-120.61054884999999)
-  const [lat, setLat] = useState(35.125492550000004)
-  const [zoom, setZoom] = useState(16)
   const [hoveredFeatures, setHoveredFeatures] = useState<
     MapboxGeoJSONFeature[]
   >([])
   const [style, setStyle] = useState<StyleDef>({
-    highwayColor: '#444444',
-    highwayWidth: 3,
-    buildingColor: '#999999',
-    parkColor: '#00ff00',
-    waterColor: '#0000ff',
-    beachColor: '#ffff00',
+    rules: [
+      {
+        id: 'default-park-color',
+        filter: new StyleFilter('leisure', 'park'),
+        style: new FillStyle('#00ff00'),
+      },
+      {
+        id: 'default-building-rule',
+        filter: new StyleFilter('building'),
+        style: new FillStyle('#999999'),
+      },
+      {
+        id: 'default-beach-color',
+        filter: new StyleFilter('natural', 'beach'),
+        style: new FillStyle('#ffff00'),
+      },
+      {
+        id: 'default-water-color',
+        filter: new StyleFilter('natural', 'water'),
+        style: new FillStyle('#0000ff')
+      }, 
+      {
+        id: 'default-highway-rule',
+        filter: new StyleFilter('highway'),
+        style: new LineStyle(4, '#444444'),
+      },     
+    ],
   })
 
   useEffect(() => {
     console.log('Creating mapboxgl map')
     const map = new mapboxgl.Map({
       container: mapContainer.current!,
-      center: [lng, lat],
-      zoom: zoom,
       minZoom: 14,
       style: compileMapboxStyle(style),
       hash: true,
-    })
-
-    map.on('move', () => {
-      setLng(map.getCenter().lng)
-      setLat(map.getCenter().lat)
-      setZoom(map.getZoom())
     })
 
     let hoveredFeatures: mapboxgl.MapboxGeoJSONFeature[] = []
@@ -61,7 +73,7 @@ function App() {
     map.on('mousemove', (e) => {
       hoveredFeatures.forEach((f) => setHoverState(f, false))
 
-      hoveredFeatures = map.queryRenderedFeatures(e.point).slice(0, 1);
+      hoveredFeatures = map.queryRenderedFeatures(e.point).slice(0, 1)
       hoveredFeatures.forEach((f) => setHoverState(f, true))
       map.getCanvas().style.cursor = hoveredFeatures.length > 0 ? 'pointer' : ''
       setHoveredFeatures(hoveredFeatures)
@@ -70,6 +82,37 @@ function App() {
       hoveredFeatures.forEach((f) => setHoverState(f, false))
       hoveredFeatures = []
       setHoveredFeatures(hoveredFeatures)
+    })
+    map.on('click', (e) => {
+      let features = map.queryRenderedFeatures(e.point)
+      if (features.length === 0) {
+        return
+      }
+      let clickedFeature = features[0]
+
+      const el = document.createElement('div')
+
+      ReactDOM.render(
+        <StyleRuleCreator
+          feature={clickedFeature}
+          onRuleAdded={(rule) => {
+            style.rules.push(rule)
+            onStyleChange()
+            popup.remove()
+          }}
+        />,
+        el
+      )
+
+      const popup = new mapboxgl.Popup({
+        closeButton: true,
+        closeOnClick: true,
+        focusAfterOpen: true,
+        maxWidth: '30rem',
+      })
+        .setDOMContent(el)
+        .setLngLat(e.lngLat)
+        .addTo(map)
     })
 
     map.addControl(
@@ -93,9 +136,13 @@ function App() {
     // eslint-disable-next-line
   }, [])
 
-  function onStyleChange(style: StyleDef) {
-    console.log('style changed', style)
-    setStyle(style)
+  function onStyleChange() {
+    console.log(
+      'style changed',
+      style,
+      JSON.parse(JSON.stringify(compileMapboxStyle(style)))
+    )
+    setStyle({ ...style })
     stateMap?.setStyle(compileMapboxStyle(style), { diff: true })
   }
 
@@ -108,7 +155,7 @@ function App() {
             <StyleEditor style={style} onStyleChange={onStyleChange} />
           </Pane>
           <Pane className="pane">
-            <FeatureInfo features={hoveredFeatures}/>
+            <FeatureInfo features={hoveredFeatures} />
           </Pane>
         </SplitPane>
 

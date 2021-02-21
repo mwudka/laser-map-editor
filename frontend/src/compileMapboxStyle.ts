@@ -1,7 +1,10 @@
-import { StyleDef } from './StyleEditor'
-import mapboxgl from 'mapbox-gl'
+import { StyleDef, StyleRule } from './StyleEditor'
+import mapboxgl, { FillPaint, LinePaint } from 'mapbox-gl'
+import StyleRuleCreator from './StyleRuleCreator'
 
-function wrapInHoverDetection(expression: string | mapboxgl.StyleFunction | mapboxgl.Expression | undefined): mapboxgl.Expression {
+function wrapInHoverDetection(
+  expression: string | mapboxgl.StyleFunction | mapboxgl.Expression | undefined
+): mapboxgl.Expression {
   return [
     'case',
     ['boolean', ['feature-state', 'hover'], false],
@@ -10,52 +13,7 @@ function wrapInHoverDetection(expression: string | mapboxgl.StyleFunction | mapb
   ]
 }
 
-function compileLineLayer(
-  id: string,
-  filter: any[],
-  paint: mapboxgl.LinePaint
-): mapboxgl.LineLayer {
-  // TODO: Don't assume line-color is set
-  paint['line-color'] = wrapInHoverDetection(paint['line-color']);
-
-  return {
-    id,
-    filter,
-    paint,
-    type: 'line',
-    source: 'postgis-tiles',
-    // ST_AsMVT() uses 'default' as layer name
-    'source-layer': 'default',
-    minzoom: 14,
-    maxzoom: 22,
-  }
-}
-
-function compileFillLayer(
-  id: string,
-  filter: any[],
-  paint: mapboxgl.FillPaint
-): mapboxgl.FillLayer {
-
-  // TODO: Don't assume fill-color is set
-  paint['fill-color'] = wrapInHoverDetection(paint['fill-color']);
-
-  return {
-    id,
-    filter,
-    paint,
-    type: 'fill',
-    source: 'postgis-tiles',
-    // ST_AsMVT() uses 'default' as layer name
-    'source-layer': 'default',
-    minzoom: 14,
-    maxzoom: 22,
-  }
-}
-
 export default function compileMapboxStyle(style: StyleDef): mapboxgl.Style {
-  let id = 0
-  let nextId = () => `postgis-tiles-layer-${id++}`
   return {
     version: 8,
     sources: {
@@ -64,23 +22,41 @@ export default function compileMapboxStyle(style: StyleDef): mapboxgl.Style {
         tiles: ['http://localhost:8082/{z}/{x}/{y}'],
       },
     },
-    layers: [
-      compileFillLayer(nextId(), ['==', 'park', ['get', 'leisure']], {
-        'fill-color': style.parkColor,
-      }),
-      compileFillLayer(nextId(), ['==', 'beach', ['get', 'natural']], {
-        'fill-color': style.beachColor,
-      }),
-      compileFillLayer(nextId(), ['==', 'water', ['get', 'natural']], {
-        'fill-color': style.waterColor,
-      }),
-      compileLineLayer(nextId(), ['has', 'highway'], {
-        'line-color': style.highwayColor,
-        'line-width': style.highwayWidth,
-      }),
-      compileFillLayer(nextId(), ['has', 'building'], {
-        'fill-color': style.buildingColor,
-      }),      
-    ],
+    layers: style.rules.map((rule) => {
+      let filter = rule.filter.compileFilter()
+
+      const sharedLayerProps = {
+        id: rule.id,
+        filter: rule.filter.compileFilter(),
+        source: 'postgis-tiles',
+        // ST_AsMVT() uses 'default' as layer name
+        'source-layer': 'default',
+        minzoom: 14,
+        maxzoom: 22,
+      }
+
+      switch (rule.style.type) {
+        case 'fill': {
+          const paint = rule.style.compileStyle() as FillPaint
+          // TODO: Don't assume fill-color is set
+          paint['fill-color'] = wrapInHoverDetection(paint['fill-color'])
+          return {
+            ...sharedLayerProps,
+            paint,
+            type: 'fill',
+          }
+        }
+        case 'line': {
+          const paint = rule.style.compileStyle() as LinePaint
+          // TODO: Don't assume line-color is set
+          paint['line-color'] = wrapInHoverDetection(paint['line-color'])
+          return {
+            ...sharedLayerProps,
+            type: 'line',
+            paint,
+          }
+        }
+      }
+    }),
   }
 }

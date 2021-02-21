@@ -20,16 +20,17 @@ export default function Exporter({map, style}: {map: mapboxgl.Map, style: StyleD
             }
 
             const path = parent.path(svgPathString);
-            
-            if (properties!['building']) {
-                path.fill(style.buildingColor);
-            }
-            if (properties!['highway']) {
-                path.stroke({color: style.highwayColor, width: style.highwayWidth}).fill('none');
-            }
-            if (properties!["leisure"] === "park") {
-                path.fill(style.parkColor);
-            }
+
+            // TODO: Re-implement
+            // if (properties!['building']) {
+            //     path.fill(style.buildingColor);
+            // }
+            // if (properties!['highway']) {
+            //     path.stroke({color: style.highwayColor, width: style.highwayWidth}).fill('none');
+            // }
+            // if (properties!["leisure"] === "park") {
+            //     path.fill(style.parkColor);
+            // }
             
         }
 
