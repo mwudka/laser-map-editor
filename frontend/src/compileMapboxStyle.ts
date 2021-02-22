@@ -1,6 +1,5 @@
-import { StyleDef, StyleRule } from './StyleEditor'
+import { StyleDef } from './StyleEditor'
 import mapboxgl, { FillPaint, LinePaint } from 'mapbox-gl'
-import StyleRuleCreator from './StyleRuleCreator'
 
 function wrapInHoverDetection(
   expression: string | mapboxgl.StyleFunction | mapboxgl.Expression | undefined
@@ -19,7 +18,8 @@ export default function compileMapboxStyle(style: StyleDef): mapboxgl.Style {
     sources: {
       'postgis-tiles': {
         type: 'vector',
-        tiles: ['http://localhost:8082/{z}/{x}/{y}'],
+        // tiles: ['http://localhost:8082/{z}/{x}/{y}'],
+        tiles: ['http://100.125.119.76:8082/{z}/{x}/{y}'],
       },
     },
     layers: style.rules.map((rule) => {

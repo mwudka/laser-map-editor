@@ -1,4 +1,4 @@
-import { FillPaint, LinePaint } from 'mapbox-gl'
+import { ExpressionName, FillPaint, LinePaint } from 'mapbox-gl'
 import React from 'react'
 import './StyleEditor.css'
 
@@ -11,7 +11,7 @@ export class StyleFilter {
     this.propertyValue = propertyValue
   }
 
-  compileFilter(): any[] {
+  compileFilter(): [ExpressionName, ...any] {
     // TODO: Should probably be null/undefined check
     if (this.propertyValue) {
       return ['==', this.propertyValue, ['get', this.propertyKey]]
