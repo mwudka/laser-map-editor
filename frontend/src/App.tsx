@@ -5,7 +5,7 @@ import SplitPane, { Pane } from 'react-split-pane'
 import './App.css'
 import './Resizer.css'
 import Exporter from './Exporter'
-import StyleEditor, { FillStyle, LineStyle, StyleDef, StyleFilter } from './StyleEditor'
+import StyleEditor, { FillStyle, LineStyle, StyleDef, StyleFilter, StyleRule } from './StyleEditor'
 import compileMapboxStyle from './compileMapboxStyle'
 import FeatureInfo from './FeatureInfo'
 import ReactDOM from 'react-dom'
@@ -146,13 +146,19 @@ function App() {
     stateMap?.setStyle(compileMapboxStyle(style), { diff: true })
   }
 
+  function onRuleDelete(rule: StyleRule) {
+    console.log('rule deleted', rule)
+    style.rules = style.rules.filter(r => r.id !== rule.id)
+    onStyleChange()
+  }
+
   return (
     <div>
       {stateMap && <Exporter map={stateMap} style={style}></Exporter>}
       <SplitPane split="vertical" minSize={300}>
         <SplitPane split="horizontal" minSize={200}>
           <Pane className="pane">
-            <StyleEditor style={style} onStyleChange={onStyleChange} />
+            <StyleEditor style={style} onStyleChange={onStyleChange} onRuleDelete={onRuleDelete} />
           </Pane>
           <Pane className="pane">
             <FeatureInfo features={hoveredFeatures} />

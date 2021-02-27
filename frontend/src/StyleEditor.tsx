@@ -2,6 +2,22 @@ import { ExpressionName, FillPaint, LinePaint } from 'mapbox-gl'
 import React from 'react'
 import './StyleEditor.css'
 
+export class IdStyleFilter {
+  id: number
+
+  constructor(id: number) {
+    this.id = id
+  }
+
+  compileFilter(): [ExpressionName, ...any] {
+    return ['==', this.id, ['id']]  
+  }
+
+  summary(): string {
+    return `id=${this.id}`
+  }
+}
+
 export class StyleFilter {
   propertyKey: string
   propertyValue?: string
@@ -14,9 +30,21 @@ export class StyleFilter {
   compileFilter(): [ExpressionName, ...any] {
     // TODO: Should probably be null/undefined check
     if (this.propertyValue) {
-      return ['==', this.propertyValue, ['get', this.propertyKey]]
+      if (this.propertyKey === '$id') {
+        return ['==', parseInt(this.propertyValue, 10), ['id']]  
+      } else {
+        return ['==', this.propertyValue, ['get', this.propertyKey]]
+      }
     } else {
       return ['has', this.propertyKey]
+    }
+  }
+
+  summary(): string {
+    if (this.propertyValue) {
+      return `${this.propertyKey}=${this.propertyValue}`
+    } else {
+      return this.propertyKey;
     }
   }
 }
@@ -53,7 +81,7 @@ export class FillStyle {
 
 export interface StyleRule {
   id: string
-  filter: StyleFilter
+  filter: StyleFilter|IdStyleFilter
   style: LineStyle | FillStyle
 }
 
@@ -64,19 +92,26 @@ export interface StyleDef {
 function StyleRuleEditor({
   rule,
   onStyleChange,
+  onRuleDelete,
 }: {
   rule: StyleRule
-  onStyleChange: () => void
+  onStyleChange: () => void,
+  onRuleDelete: (rule: StyleRule) => void
 }) {
+  let deleteCell = (
+    <td>
+      <button onClick={e => onRuleDelete(rule)}>X</button>
+    </td>
+  )
   let leftCell = (
     <td>
-      {rule.filter.propertyKey}
-      {rule.filter.propertyValue && `=${rule.filter.propertyValue}`}
+      {rule.filter.summary()}      
     </td>
   )
   if (rule.style instanceof FillStyle) {
     return (
       <tr>
+        {deleteCell}
         {leftCell}
         <td>
           <input
@@ -95,6 +130,7 @@ function StyleRuleEditor({
   if (rule.style instanceof LineStyle) {
     return (
       <tr>
+        {deleteCell}
         {leftCell}
         <td>
           <input
@@ -128,18 +164,20 @@ function StyleRuleEditor({
 
 interface StyleEditorProps {
   style: StyleDef
-  onStyleChange: () => void
+  onStyleChange: () => void,
+  onRuleDelete: (rule: StyleRule) => void
 }
 
 export default function StyleEditor({
   style,
   onStyleChange,
+  onRuleDelete,
 }: StyleEditorProps) {
   return (
     <table className="styleEditor">
       <tbody>
         {style.rules.map((r, idx) => (
-          <StyleRuleEditor key={idx} onStyleChange={onStyleChange} rule={r} />
+          <StyleRuleEditor key={idx} onStyleChange={onStyleChange} onRuleDelete={onRuleDelete} rule={r} />
         ))}
       </tbody>
     </table>

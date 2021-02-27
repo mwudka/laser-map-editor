@@ -1,6 +1,6 @@
 import { MapboxGeoJSONFeature } from 'mapbox-gl'
 import { nanoid } from 'nanoid'
-import { LineStyle, StyleFilter, StyleRule } from './StyleEditor'
+import { IdStyleFilter, LineStyle, StyleFilter, StyleRule } from './StyleEditor'
 
 export default function StyleRuleCreator({
   feature,
@@ -10,6 +10,22 @@ export default function StyleRuleCreator({
   onRuleAdded: (rule: StyleRule) => void
 }) {
   let buttons: JSX.Element[] = []
+
+  buttons.push(
+    <div key="this-object">
+      <button
+        onClick={(e) =>
+          onRuleAdded({
+            id: nanoid(),
+            filter: new IdStyleFilter(feature.id! as number),
+            style: new LineStyle(5, '#ff0000'),
+          })
+        }
+      >
+        ...this specific object
+      </button>
+    </div>
+  )
 
   // TODO: Allow setting style for single object (via id)
   Object.keys(feature.properties!).forEach((propertyKey) => {
@@ -34,9 +50,9 @@ export default function StyleRuleCreator({
         <button
           onClick={(e) =>
             onRuleAdded({
-                id: nanoid(),
-                filter: new StyleFilter(propertyKey, propertyValue),
-                style: new LineStyle(5, '#ff0000'),
+              id: nanoid(),
+              filter: new StyleFilter(propertyKey, propertyValue),
+              style: new LineStyle(5, '#ff0000'),
             })
           }
         >{`...objects ${propertyKey}=${propertyValue}`}</button>
