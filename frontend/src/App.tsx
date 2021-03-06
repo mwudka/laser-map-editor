@@ -18,27 +18,27 @@ function App() {
       {
         id: 'default-park-color',
         filter: new StyleFilter('leisure', 'park'),
-        style: new FillStyle('#00ff00'),
+        fillStyle: new FillStyle('#00ff00'),
       },
       {
         id: 'default-building-rule',
         filter: new StyleFilter('building'),
-        style: new FillStyle('#999999'),
+        fillStyle: new FillStyle('#999999'),
       },
       {
         id: 'default-beach-color',
         filter: new StyleFilter('natural', 'beach'),
-        style: new FillStyle('#ffff00'),
+        fillStyle: new FillStyle('#ffff00'),
       },
       {
         id: 'default-water-color',
         filter: new StyleFilter('natural', 'water'),
-        style: new FillStyle('#0000ff')
+        fillStyle: new FillStyle('#0000ff')
       },
       {
         id: 'default-highway-rule',
         filter: new StyleFilter('highway'),
-        style: new LineStyle(4, '#444444'),
+        lineStyle: new LineStyle(4, '#444444'),
       },
     ],
   })
@@ -91,7 +91,6 @@ function App() {
         }
       }
 
-      
       tooltipPopup.setLngLat(e.lngLat);
     })
     map.on('mouseout', (e) => {
@@ -113,7 +112,7 @@ function App() {
         <StyleRuleCreator
           feature={clickedFeature}
           onRuleAdded={(rule) => {
-            style.rules.push(rule)
+            style.rules.unshift(rule)
             onStyleChange()
             popup.remove()
           }}
@@ -131,8 +130,6 @@ function App() {
         .setLngLat(e.lngLat)
         .addTo(map)
     })
-
-    
 
     map.addControl(
       new MapboxGeocoder({

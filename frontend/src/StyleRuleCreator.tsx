@@ -18,7 +18,7 @@ export default function StyleRuleCreator({
           onRuleAdded({
             id: nanoid(),
             filter: new IdStyleFilter(feature.id! as number),
-            style: new LineStyle(5, '#ff0000'),
+            lineStyle: new LineStyle(5, '#ff0000'),
           })
         }
       >
@@ -39,7 +39,7 @@ export default function StyleRuleCreator({
             onRuleAdded({
               id: nanoid(),
               filter: new StyleFilter(propertyKey),
-              style: new LineStyle(5, '#ff0000'),
+              lineStyle: new LineStyle(5, '#ff0000'),
             })
           }
         >{`...objects with key ${propertyKey}`}</button>
@@ -52,7 +52,7 @@ export default function StyleRuleCreator({
             onRuleAdded({
               id: nanoid(),
               filter: new StyleFilter(propertyKey, propertyValue),
-              style: new LineStyle(5, '#ff0000'),
+              lineStyle: new LineStyle(5, '#ff0000'),
             })
           }
         >{`...objects ${propertyKey}=${propertyValue}`}</button>

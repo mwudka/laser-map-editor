@@ -1,6 +1,6 @@
 import { SVG, Container as SVGContainer } from '@svgdotjs/svg.js'
 import { Expression } from './expression'
-import { FillStyle, LineStyle, mapStyleRules, StyleDef } from './StyleEditor'
+import { mapStyleRules, StyleDef } from './StyleEditor'
 
 export default function Exporter({
   map,
@@ -37,15 +37,22 @@ export default function Exporter({
             group: SVGContainer,
             coordinates: GeoJSON.Position[]
           ) {
-            const pathString = featureToLineString(coordinates)
-            if (rule.style instanceof LineStyle) {
-              let path = group.path(pathString)
-              path
-                .stroke({ color: rule.style.color, width: rule.style.width })
-                .fill('none')
-            } else if (rule.style instanceof FillStyle) {
-              let path = group.path(`${pathString} Z`)
-              path.fill(rule.style.color)
+            let pathString = featureToLineString(coordinates)
+
+            // If filling, we need to close the path so that it renders properly
+            if (rule.fillStyle) {
+              pathString = `${pathString} Z`
+            }
+            const path = group.path(pathString)
+
+            if (rule.fillStyle) {
+              path.fill(rule.fillStyle.color)
+            } else {
+              path.fill('none')
+            }
+
+            if (rule.lineStyle) {
+              path.stroke({ color: rule.lineStyle.color, width: rule.lineStyle.width })
             }
           }
 

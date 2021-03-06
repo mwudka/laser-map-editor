@@ -1,5 +1,6 @@
 import { ExpressionName, FillPaint, LinePaint } from 'mapbox-gl'
 import { DragDropContext, Draggable, Droppable, DropResult } from 'react-beautiful-dnd'
+import titleize from 'titleize'
 import './StyleEditor.css'
 export class IdStyleFilter {
   id: number
@@ -40,11 +41,7 @@ export class StyleFilter {
   }
 
   summary(): string {
-    if (this.propertyValue) {
-      return `${this.propertyKey}=${this.propertyValue}`
-    } else {
-      return this.propertyKey
-    }
+    return titleize(this.propertyValue ? `${this.propertyKey} ${this.propertyValue}` : this.propertyKey)
   }
 }
 
@@ -79,7 +76,8 @@ export class FillStyle {
 export interface StyleRule {
   id: string
   filter: StyleFilter | IdStyleFilter
-  style: LineStyle | FillStyle
+  lineStyle?: LineStyle
+  fillStyle?: FillStyle
 }
 
 export interface StyleDef {
@@ -93,7 +91,7 @@ export interface StyleDef {
  * @param style 
  * @param callback 
  */
-export function mapStyleRules<T>(style: StyleDef, callback: (rule: StyleRule, filter: [ExpressionName, ...any[]]) => T): T[] {
+export function mapStyleRules<T>(style: StyleDef, callback: (rule: StyleRule, filter: [ExpressionName, ...any[]]) => T[]|void): T[] {
   return style.rules.map((rule, idx) => {
     let filter = rule.filter.compileFilter()
 
@@ -102,8 +100,16 @@ export function mapStyleRules<T>(style: StyleDef, callback: (rule: StyleRule, fi
       filter = ['all', filter, ['!', ['any', ...higherPriorityFilters]]]
     }
 
-    return callback(rule, filter)
-  });
+    return callback(rule, filter) || []
+  }).flat()
+}
+
+
+// TODO: There is probably a JS library to do this? Or maybe it can be on the object prototype somehow?
+function ifPresent<T, R>(obj: T | undefined, callback: ((arg0: T) => R)) {
+  if (obj) {
+    return callback(obj)
+  }
 }
 
 function StyleRuleEditor({
@@ -117,39 +123,56 @@ function StyleRuleEditor({
   onStyleChange: () => void
   onRuleDelete: (rule: StyleRule) => void,
 }) {
-
-
   return <span>
     <button onClick={(e) => onRuleDelete(rule)}>X</button>
     {rule.filter.summary()}
-    {rule.style instanceof FillStyle && <input
+    <br/>
+    Fill <input type="checkbox" checked={!!rule.fillStyle} onChange={e => {
+      if (e.target.checked) {
+        rule.fillStyle = new FillStyle('#ff0000')
+      } else {
+        rule.fillStyle = undefined
+      }
+      onStyleChange()
+    }} />
+    {ifPresent(rule.fillStyle, style => <input
       type="color"
-      value={rule.style.color}
+      value={style.color}
       onChange={(e) => {
-        rule.style.color = e.target.value
+        style.color = e.target.value
         onStyleChange()
       }}
-    />}
-    {rule.style instanceof LineStyle && <span>
-      <input
-        type="color"
-        value={rule.style.color}
-        onChange={(e) => {
-          rule.style.color = e.target.value
-          onStyleChange()
-        }}
-      />
+    />
+    )}
+    <br/>
+    Line <input type="checkbox" checked={!!rule.lineStyle} onChange={e => {
+      if (e.target.checked) {
+        rule.lineStyle = new LineStyle(3, '#ff0000')
+      } else {
+        rule.lineStyle = undefined
+      }
+      onStyleChange()
+    }}/>
+    {ifPresent(rule.lineStyle, style => <span><input
+      type="color"
+      value={style.color}
+      onChange={(e) => {
+        style.color = e.target.value
+        onStyleChange()
+      }}
+    />
       <input
         type="range"
-        value={rule.style.width}
+        value={style.width}
         onChange={(e) => {
-          ; (rule.style as LineStyle).width = parseInt(e.target.value, 10)
+          style.width = parseInt(e.target.value, 10)
           onStyleChange()
         }}
         min={1}
         max={10}
       />
-    </span>}
+    </span>
+    )}
   </span>
 
 }
