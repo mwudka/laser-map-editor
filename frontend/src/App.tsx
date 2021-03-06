@@ -152,13 +152,21 @@ function App() {
     onStyleChange()
   }
 
+  function onRuleReorder(dragIndex: number, hoverIndex: number) {
+    console.log(`rule reordered from ${dragIndex} to ${hoverIndex}`)
+    const draggedRule = style.rules[dragIndex]
+    style.rules.splice(dragIndex, 1)
+    style.rules.splice(hoverIndex, 0, draggedRule)
+    onStyleChange()
+  }
+
   return (
     <div>
       {stateMap && <Exporter map={stateMap} style={style}></Exporter>}
       <SplitPane split="vertical" minSize={300}>
         <SplitPane split="horizontal" minSize={200}>
           <Pane className="pane">
-            <StyleEditor style={style} onStyleChange={onStyleChange} onRuleDelete={onRuleDelete} />
+            <StyleEditor style={style} onStyleChange={onStyleChange} onRuleDelete={onRuleDelete} onRuleReorder={onRuleReorder}/>
           </Pane>
           <Pane className="pane">
             <FeatureInfo features={hoveredFeatures} />
