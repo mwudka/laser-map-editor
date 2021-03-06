@@ -1,4 +1,4 @@
-import { StyleDef } from './StyleEditor'
+import { mapStyleRules, StyleDef } from './StyleEditor'
 import mapboxgl, { FillPaint, LinePaint } from 'mapbox-gl'
 
 function wrapInHoverDetection(
@@ -22,15 +22,7 @@ export default function compileMapboxStyle(style: StyleDef): mapboxgl.Style {
         tiles: ['http://mushu:8082/{z}/{x}/{y}'],
       },
     },
-    layers: style.rules.map((rule, idx) => {
-      let filter = rule.filter.compileFilter()
-
-      // TODO: Move this logic into a central place so the Exporter can use it too
-      const higherPriorityFilters = style.rules.slice(0, idx).map(rule => rule.filter.compileFilter())
-      if (higherPriorityFilters.length > 0) {
-        filter = ['all', filter, ['!', ['any', ...higherPriorityFilters]]]
-      }
-
+    layers: mapStyleRules(style, (rule, filter) => {
       const sharedLayerProps = {
         id: rule.id,
         filter,

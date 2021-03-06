@@ -86,6 +86,26 @@ export interface StyleDef {
   rules: StyleRule[]
 }
 
+/**
+ * Helper method that calls the given callback for each rule. The callback is given the rule
+ * and a MapBox GL expression that returns true if the given rule matches AND no higher-priority
+ * rules match.
+ * @param style 
+ * @param callback 
+ */
+export function mapStyleRules<T>(style: StyleDef, callback: (rule: StyleRule, filter: [ExpressionName, ...any[]]) => T): T[] {
+  return style.rules.map((rule, idx) => {
+    let filter = rule.filter.compileFilter()
+
+    const higherPriorityFilters = style.rules.slice(0, idx).map(rule => rule.filter.compileFilter())
+    if (higherPriorityFilters.length > 0) {
+      filter = ['all', filter, ['!', ['any', ...higherPriorityFilters]]]
+    }
+
+    return callback(rule, filter)
+  });
+}
+
 function StyleRuleEditor({
   ruleIndex,
   rule,

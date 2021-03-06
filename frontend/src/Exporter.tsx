@@ -1,6 +1,6 @@
 import { SVG, Container as SVGContainer } from '@svgdotjs/svg.js'
 import { Expression } from './expression'
-import { FillStyle, LineStyle, StyleDef } from './StyleEditor'
+import { FillStyle, LineStyle, mapStyleRules, StyleDef } from './StyleEditor'
 
 export default function Exporter({
   map,
@@ -22,11 +22,12 @@ export default function Exporter({
         .join(' ')
     }
 
-    style.rules.forEach((rule) => {
+    mapStyleRules(style, (rule, filter) => {
       const expression = Expression.parse(
-        rule.filter.compileFilter(),
+        filter,
         'boolean'
       )
+
       const group = svg.group()
       map
         ?.queryRenderedFeatures()
