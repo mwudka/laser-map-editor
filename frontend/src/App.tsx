@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react'
-import mapboxgl, { MapboxGeoJSONFeature } from 'mapbox-gl'
+import mapboxgl from 'mapbox-gl'
 import MapboxGeocoder from '@mapbox/mapbox-gl-geocoder'
 import SplitPane, { Pane } from 'react-split-pane'
 import './App.css'
@@ -7,16 +7,12 @@ import './Resizer.css'
 import Exporter from './Exporter'
 import StyleEditor, { FillStyle, LineStyle, StyleDef, StyleFilter, StyleRule } from './StyleEditor'
 import compileMapboxStyle from './compileMapboxStyle'
-import FeatureInfo from './FeatureInfo'
 import ReactDOM from 'react-dom'
 import StyleRuleCreator from './StyleRuleCreator'
 
 function App() {
   const mapContainer = useRef<HTMLDivElement>(null)
   const [stateMap, setStateMap] = useState<mapboxgl.Map>()
-  const [hoveredFeatures, setHoveredFeatures] = useState<
-    MapboxGeoJSONFeature[]
-  >([])
   const [style, setStyle] = useState<StyleDef>({
     rules: [
       {
@@ -38,12 +34,12 @@ function App() {
         id: 'default-water-color',
         filter: new StyleFilter('natural', 'water'),
         style: new FillStyle('#0000ff')
-      }, 
+      },
       {
         id: 'default-highway-rule',
         filter: new StyleFilter('highway'),
         style: new LineStyle(4, '#444444'),
-      },     
+      },
     ],
   })
 
@@ -70,18 +66,39 @@ function App() {
         { hover }
       )
     }
+
+    const tooltipPopup = new mapboxgl.Popup({
+      maxWidth: '30rem',
+    })
+      .addTo(map)
+
     map.on('mousemove', (e) => {
       hoveredFeatures.forEach((f) => setHoverState(f, false))
 
       hoveredFeatures = map.queryRenderedFeatures(e.point).slice(0, 1)
       hoveredFeatures.forEach((f) => setHoverState(f, true))
       map.getCanvas().style.cursor = hoveredFeatures.length > 0 ? 'pointer' : ''
-      setHoveredFeatures(hoveredFeatures)
+
+      if (hoveredFeatures.length > 0) {
+        tooltipPopup.setHTML('<pre>' + hoveredFeatures.map(feature => `id=${feature.id}: ${JSON.stringify(feature.properties, undefined, 2)}`).join('\n\n') + '</pre>')
+
+        if (!tooltipPopup.isOpen()) {
+          tooltipPopup.addTo(map);
+        }
+      } else {
+        if (tooltipPopup.isOpen()) {
+          tooltipPopup.remove();
+        }
+      }
+
+      
+      tooltipPopup.setLngLat(e.lngLat);
     })
     map.on('mouseout', (e) => {
       hoveredFeatures.forEach((f) => setHoverState(f, false))
       hoveredFeatures = []
-      setHoveredFeatures(hoveredFeatures)
+
+      tooltipPopup.remove();
     })
     map.on('click', (e) => {
       let features = map.queryRenderedFeatures(e.point)
@@ -114,6 +131,8 @@ function App() {
         .setLngLat(e.lngLat)
         .addTo(map)
     })
+
+    
 
     map.addControl(
       new MapboxGeocoder({
@@ -164,15 +183,9 @@ function App() {
     <div>
       {stateMap && <Exporter map={stateMap} style={style}></Exporter>}
       <SplitPane split="vertical" minSize={400}>
-        <SplitPane split="horizontal" minSize={200}>
-          <Pane className="pane">
-            <StyleEditor style={style} onStyleChange={onStyleChange} onRuleDelete={onRuleDelete} onRuleReorder={onRuleReorder}/>
-          </Pane>
-          <Pane className="pane">
-            <FeatureInfo features={hoveredFeatures} />
-          </Pane>
-        </SplitPane>
-
+        <Pane className="pane">
+          <StyleEditor style={style} onStyleChange={onStyleChange} onRuleDelete={onRuleDelete} onRuleReorder={onRuleReorder} />
+        </Pane>
         <div ref={mapContainer} className="mapContainer" />
       </SplitPane>
     </div>
