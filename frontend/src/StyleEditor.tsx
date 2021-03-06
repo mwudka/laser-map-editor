@@ -1,8 +1,6 @@
 import { ExpressionName, FillPaint, LinePaint } from 'mapbox-gl'
-import React, { useRef } from 'react'
+import { DragDropContext, Draggable, Droppable, DropResult } from 'react-beautiful-dnd'
 import './StyleEditor.css'
-import { DndProvider, useDrop, useDrag, DropTargetMonitor, XYCoord } from 'react-dnd'
-import { HTML5Backend } from 'react-dnd-html5-backend'
 export class IdStyleFilter {
   id: number
 
@@ -88,169 +86,52 @@ export interface StyleDef {
   rules: StyleRule[]
 }
 
-interface DragItem {
-  index: number
-  id: string
-  type: string
-}
-
-const DragItemTypes = {
-  STYLE_RULE: 'style_rule',
-}
-
 function StyleRuleEditor({
   ruleIndex,
   rule,
   onStyleChange,
   onRuleDelete,
-  onRuleReorder,
 }: {
   ruleIndex: number
   rule: StyleRule
   onStyleChange: () => void
   onRuleDelete: (rule: StyleRule) => void,
-  onRuleReorder: (dragIndex: number, hoverIndex: number) => void
 }) {
 
-  const ref = useRef<HTMLTableRowElement>(null)
-  const [{ handlerId }, drop] = useDrop({
-    accept: DragItemTypes.STYLE_RULE,
-    collect(monitor) {
-      return {
-        handlerId: monitor.getHandlerId(),
-      }
-    },
-    hover(item: DragItem, monitor: DropTargetMonitor) {
-      if (!ref.current) {
-        return
-      }
-      const dragIndex = item.index
-      const hoverIndex = ruleIndex
 
-      // Don't replace items with themselves
-      if (dragIndex === hoverIndex) {
-        return
-      }
+  return <span>
+    <button onClick={(e) => onRuleDelete(rule)}>X</button>
+    {rule.filter.summary()}
+    {rule.style instanceof FillStyle && <input
+      type="color"
+      value={rule.style.color}
+      onChange={(e) => {
+        rule.style.color = e.target.value
+        onStyleChange()
+      }}
+    />}
+    {rule.style instanceof LineStyle && <span>
+      <input
+        type="color"
+        value={rule.style.color}
+        onChange={(e) => {
+          rule.style.color = e.target.value
+          onStyleChange()
+        }}
+      />
+      <input
+        type="range"
+        value={rule.style.width}
+        onChange={(e) => {
+          ; (rule.style as LineStyle).width = parseInt(e.target.value, 10)
+          onStyleChange()
+        }}
+        min={1}
+        max={10}
+      />
+    </span>}
+  </span>
 
-      // Determine rectangle on screen
-      const hoverBoundingRect = ref.current?.getBoundingClientRect()
-
-      // Get vertical middle
-      const hoverMiddleY =
-        (hoverBoundingRect.bottom - hoverBoundingRect.top) / 2
-
-      // Determine mouse position
-      const clientOffset = monitor.getClientOffset()
-
-      // Get pixels to the top
-      const hoverClientY = (clientOffset as XYCoord).y - hoverBoundingRect.top
-
-      // Only perform the move when the mouse has crossed half of the items height
-      // When dragging downwards, only move when the cursor is below 50%
-      // When dragging upwards, only move when the cursor is above 50%
-
-      // Dragging downwards
-      if (dragIndex < hoverIndex && hoverClientY < hoverMiddleY) {
-        return
-      }
-
-      // Dragging upwards
-      if (dragIndex > hoverIndex && hoverClientY > hoverMiddleY) {
-        return
-      }
-
-      // Time to actually perform the action
-      onRuleReorder(dragIndex, hoverIndex)
-
-      // Note: we're mutating the monitor item here!
-      // Generally it's better to avoid mutations,
-      // but it's good here for the sake of performance
-      // to avoid expensive index searches.
-      item.index = hoverIndex
-    },
-  })
-
-  const [{ isDragging }, drag] = useDrag({
-    item: { type: DragItemTypes.STYLE_RULE, id: rule.id, index: ruleIndex },
-    collect: (monitor: any) => ({
-      isDragging: monitor.isDragging(),
-    }),
-  })
-
-  const opacity = isDragging ? 0.5 : 1
-
-  drag(drop(ref))
-
-
-  let deleteCell = (
-    <td>
-      <button onClick={(e) => onRuleDelete(rule)}>X</button>
-    </td>
-  )
-
-  let dragCell = (
-    <td>
-      <span ref={ref} className="grippy"/>
-    </td>
-  )
-
-  let leftCell = <td>{rule.filter.summary()}</td>
-  if (rule.style instanceof FillStyle) {
-    return (
-      <tr data-handler-id={handlerId} style={{opacity}}>
-        {dragCell}
-        {deleteCell}
-        {leftCell}
-        <td>
-          <input
-            type="color"
-            value={rule.style.color}
-            onChange={(e) => {
-              rule.style.color = e.target.value
-              onStyleChange()
-            }}
-          />
-        </td>
-      </tr>
-    )
-  }
-
-  if (rule.style instanceof LineStyle) {
-    return (
-      <tr data-handler-id={handlerId} style={{opacity}}>
-        {dragCell}
-        {deleteCell}
-        {leftCell}
-        <td>
-          <input
-            type="color"
-            value={rule.style.color}
-            onChange={(e) => {
-              rule.style.color = e.target.value
-              onStyleChange()
-            }}
-          />
-        </td>
-
-        <td>
-          <input
-            type="range"
-            value={rule.style.width}
-            onChange={(e) => {
-              ;(rule.style as LineStyle).width = parseInt(e.target.value, 10)
-              onStyleChange()
-            }}
-            min={1}
-            max={10}
-          />
-        </td>
-      </tr>
-    )
-  }
-
-  return <tr/>
-
-  // throw new Error(`Unsupported rule style type ${JSON.stringify(rule.style)}`)
 }
 
 interface StyleEditorProps {
@@ -266,22 +147,42 @@ export default function StyleEditor({
   onRuleDelete,
   onRuleReorder,
 }: StyleEditorProps) {
+
+  function onDragEnd(result: DropResult) {
+    if (!result.destination) {
+      console.log('onDragEnd no destination')
+      return
+    }
+
+    if (result.destination.index === result.source.index) {
+      console.log('onDragEnd no change')
+      return
+    }
+
+    console.log('onDragEnd', result.source.index, result.destination.index)
+    onRuleReorder(result.source.index, result.destination.index)
+  }
+
+
   return (
-    <table className="styleEditor">
-      <DndProvider backend={HTML5Backend}>
-        <tbody>
-          {style.rules.map((r, idx) => (
-            <StyleRuleEditor
-              key={idx}
-              ruleIndex={idx}
-              onStyleChange={onStyleChange}
-              onRuleDelete={onRuleDelete}
-              onRuleReorder={onRuleReorder}
-              rule={r}
-            />
-          ))}
-        </tbody>
-      </DndProvider>
-    </table>
+    <DragDropContext onDragEnd={onDragEnd}>
+      <Droppable droppableId="styleRules">
+        {(provided) => (
+          <div {...provided.droppableProps} ref={provided.innerRef}>
+            {style.rules.map((r, idx) => (
+              <Draggable draggableId={r.id} index={idx} key={r.id}>
+                {provided => (
+                  <div ref={provided.innerRef} {...provided.draggableProps}>
+                    <span {...provided.dragHandleProps} className="grippy" />
+                    <StyleRuleEditor ruleIndex={idx} rule={r} onStyleChange={onStyleChange} onRuleDelete={onRuleDelete} />
+                  </div>
+                )}
+              </Draggable>
+            ))}
+            {provided.placeholder}
+          </div>
+        )}
+      </Droppable>
+    </DragDropContext>
   )
 }

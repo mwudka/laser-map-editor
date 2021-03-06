@@ -163,7 +163,7 @@ function App() {
   return (
     <div>
       {stateMap && <Exporter map={stateMap} style={style}></Exporter>}
-      <SplitPane split="vertical" minSize={300}>
+      <SplitPane split="vertical" minSize={400}>
         <SplitPane split="horizontal" minSize={200}>
           <Pane className="pane">
             <StyleEditor style={style} onStyleChange={onStyleChange} onRuleDelete={onRuleDelete} onRuleReorder={onRuleReorder}/>

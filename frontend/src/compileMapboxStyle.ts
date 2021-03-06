@@ -19,7 +19,7 @@ export default function compileMapboxStyle(style: StyleDef): mapboxgl.Style {
       'postgis-tiles': {
         type: 'vector',
         // tiles: ['http://localhost:8082/{z}/{x}/{y}'],
-        tiles: ['http://100.125.119.76:8082/{z}/{x}/{y}'],
+        tiles: ['http://mushu:8082/{z}/{x}/{y}'],
       },
     },
     layers: style.rules.map((rule, idx) => {
