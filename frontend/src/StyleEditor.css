@@ -6,6 +6,10 @@
   width: 50px;
 }
 
+#styleRulesList {
+  padding: 0 1rem;
+}
+
 .styleEditorRow {
   background-color: #f0f0f0;
   border          : 1px solid #101010;

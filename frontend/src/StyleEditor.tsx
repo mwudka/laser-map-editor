@@ -230,7 +230,7 @@ export default function StyleEditor({
     <DragDropContext onDragEnd={onDragEnd}>
       <Droppable droppableId="styleRules">
         {(provided) => (
-          <div style={{ padding: '1rem' }} {...provided.droppableProps} ref={provided.innerRef}>
+          <div id="styleRulesList" {...provided.droppableProps} ref={provided.innerRef}>
             {style.rules.map((r, idx) => (
               <StyleRuleEditor rule={r} ruleIndex={idx} onStyleChange={onStyleChange} onRuleDelete={onRuleDelete} key={r.id} />
             ))}

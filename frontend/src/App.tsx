@@ -1,7 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react'
 import mapboxgl from 'mapbox-gl'
 import MapboxGeocoder from '@mapbox/mapbox-gl-geocoder'
-import SplitPane, { Pane } from 'react-split-pane'
 import './App.css'
 import './Resizer.css'
 import Exporter from './Exporter'
@@ -177,14 +176,14 @@ function App() {
   }
 
   return (
-    <div>
-      {stateMap && <Exporter map={stateMap} style={style}></Exporter>}
-      <SplitPane split="vertical" minSize={400}>
-        <Pane className="pane">
-          <StyleEditor style={style} onStyleChange={onStyleChange} onRuleDelete={onRuleDelete} onRuleReorder={onRuleReorder} />
-        </Pane>
-        <div ref={mapContainer} className="mapContainer" />
-      </SplitPane>
+    <div id="app">
+      <div id="toolbar">
+        {stateMap && <Exporter map={stateMap} style={style}></Exporter>}
+      </div>
+      <div id="style-editor" className="hide-scrollbar">
+        <StyleEditor style={style} onStyleChange={onStyleChange} onRuleDelete={onRuleDelete} onRuleReorder={onRuleReorder} />
+      </div>
+      <div ref={mapContainer} className="mapContainer" />
     </div>
   )
 }
