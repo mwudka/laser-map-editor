@@ -136,16 +136,18 @@ function StyleRuleEditor({
         </div>
 
         <div className="fill-select">
-          <input type="checkbox" checked={!!rule.fillStyle} onChange={e => {
-            if (e.target.checked) {
-              rule.fillStyle = new FillStyle('#ff0000')
-            } else {
-              rule.fillStyle = undefined
-            }
-            onStyleChange()
-          }} />
+          <label>
+            <input type="checkbox" checked={!!rule.fillStyle} onChange={e => {
+              if (e.target.checked) {
+                rule.fillStyle = new FillStyle('#ff0000')
+              } else {
+                rule.fillStyle = undefined
+              }
+              onStyleChange()
+            }} />
       Fill
-      </div>
+      </label>
+        </div>
         <div className="fill-color">
           {ifPresent(rule.fillStyle, style => <input
             type="color"
@@ -158,16 +160,18 @@ function StyleRuleEditor({
           )}
         </div>
         <div className="line-select">
-          <input type="checkbox" checked={!!rule.lineStyle} onChange={e => {
-            if (e.target.checked) {
-              rule.lineStyle = new LineStyle(3, '#ff0000')
-            } else {
-              rule.lineStyle = undefined
-            }
-            onStyleChange()
-          }} />
+          <label>
+            <input type="checkbox" checked={!!rule.lineStyle} onChange={e => {
+              if (e.target.checked) {
+                rule.lineStyle = new LineStyle(3, '#ff0000')
+              } else {
+                rule.lineStyle = undefined
+              }
+              onStyleChange()
+            }} />
       Line
-      </div>
+      </label>
+        </div>
         <div className="line-color">
           {ifPresent(rule.lineStyle, style => <input
             type="color"
