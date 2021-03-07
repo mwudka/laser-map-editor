@@ -27,6 +27,8 @@ body,
 
 #toolbar {
 	padding: 0.5rem 1rem;
+	box-shadow: 0 4px 2px -2px gray;
+	z-index: 1;
 }
 
 #toolbar button {
