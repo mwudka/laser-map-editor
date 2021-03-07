@@ -34,7 +34,6 @@ export default function compileMapboxStyle(style: StyleDef): mapboxgl.Style {
 
       let ret: AnyLayer[] = []
 
-      // TODO: Support fill and line style
       if (rule.fillStyle) {
         const paint = rule.fillStyle.compileStyle()
         // TODO: Don't assume fill-color is set

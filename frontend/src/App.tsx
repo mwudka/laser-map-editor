@@ -17,7 +17,7 @@ function App() {
       {
         id: 'default-highway-rule',
         filter: new StyleFilter('highway'),
-        lineStyle: new LineStyle(2, '#444444'),
+        lineStyle: new LineStyle(2, '#444444', false),
       },
       {
         id: 'default-building-rule',

@@ -49,14 +49,16 @@ export class LineStyle {
   width: number
   color: string
   type: 'line' | 'fill' = 'line'
+  dashed: boolean
 
-  constructor(width: number, color: string) {
+  constructor(width: number, color: string, dashed: boolean) {
     this.width = width
     this.color = color
+    this.dashed = dashed
   }
 
   compileStyle(): LinePaint {
-    return { 'line-color': this.color, 'line-width': this.width }
+    return { 'line-color': this.color, 'line-width': this.width, 'line-dasharray': this.dashed ? [2, 1] : [] }
   }
 }
 
@@ -97,7 +99,7 @@ export function mapStyleRules<T>(style: StyleDef, callback: (rule: StyleRule, fi
   return reversedRules.flatMap((rule, idx) => {
     let filter = rule.filter.compileFilter()
 
-    const higherPriorityFilters = reversedRules.slice(0, idx).map(rule => rule.filter.compileFilter())
+    const higherPriorityFilters = reversedRules.slice(idx + 1, reversedRules.length).map(rule => rule.filter.compileFilter())
     if (higherPriorityFilters.length > 0) {
       filter = ['all', filter, ['!', ['any', ...higherPriorityFilters]]]
     }
@@ -163,7 +165,7 @@ function StyleRuleEditor({
           <label>
             <input type="checkbox" checked={!!rule.lineStyle} onChange={e => {
               if (e.target.checked) {
-                rule.lineStyle = new LineStyle(3, '#ff0000')
+                rule.lineStyle = new LineStyle(3, '#ff0000', false)
               } else {
                 rule.lineStyle = undefined
               }
@@ -195,6 +197,13 @@ function StyleRuleEditor({
             max={10}
           />
           )}
+        </div>
+        <div className="line-dash">
+          {ifPresent(rule.lineStyle, style => <label>
+            Dashed<input type="checkbox" checked={style.dashed} onChange={e => {
+              style.dashed = e.target.checked
+              onStyleChange()
+            }} /></label>)}
         </div>
       </div>
     )}

@@ -52,7 +52,7 @@ export default function Exporter({
             }
 
             if (rule.lineStyle) {
-              path.stroke({ color: rule.lineStyle.color, width: rule.lineStyle.width })
+              path.stroke({ color: rule.lineStyle.color, width: rule.lineStyle.width, dasharray: rule.lineStyle.dashed ? "5,2.5" : undefined })
             }
           }
 

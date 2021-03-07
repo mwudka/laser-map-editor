@@ -17,12 +17,12 @@
   margin-bottom   : 1rem;
   display: grid;
   grid-template-areas:
-    "handle title       title      title"
-    "handle fill-select fill-color fill-color"
-    "handle line-select line-color line-width"
+    "handle title       title      title      title"
+    "handle fill-select fill-color fill-color fill-color"
+    "handle line-select line-color line-width line-dash"
 
   ;
-  grid-template-columns: 0.4rem auto auto 1fr;
+  grid-template-columns: 0.4rem auto auto 1fr auto;
   grid-template-rows   : auto 1fr 1fr;
   gap                  : 0.1rem 0.5rem;
   align-items          : center;
@@ -70,4 +70,8 @@
 
 .line-width {
   grid-area: line-width;
+}
+
+.line-dash {
+  grid-area: line-dash;
 }
