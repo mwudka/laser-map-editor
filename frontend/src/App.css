@@ -39,6 +39,7 @@ body,
 #app>#style-editor {
 	grid-area : style-editor;
 	overflow-y: scroll;
+	padding-top: 1rem;
 }
 
 #app>.mapContainer {
