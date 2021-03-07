@@ -67,6 +67,12 @@ export default function Exporter({
                 renderFeature(compoundGeometryGroup, c)
               )
               break
+            case 'MultiPolygon':
+              const multiPolygonGroup = group.group()
+              feature.geometry.coordinates.forEach((polygon) =>
+                polygon.forEach(c => renderFeature(multiPolygonGroup, c))
+              )
+              break
             case 'Point':
               // TODO: Add support for exporting points
               break

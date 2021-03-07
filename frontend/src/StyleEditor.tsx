@@ -14,7 +14,7 @@ export class IdStyleFilter {
   }
 
   summary(): string {
-    return `id=${this.id}`
+    return `#${this.id}`
   }
 }
 
@@ -92,16 +92,18 @@ export interface StyleDef {
  * @param callback 
  */
 export function mapStyleRules<T>(style: StyleDef, callback: (rule: StyleRule, filter: [ExpressionName, ...any[]]) => T[] | void): T[] {
-  return style.rules.map((rule, idx) => {
+  const reversedRules = [...style.rules].reverse()
+
+  return reversedRules.flatMap((rule, idx) => {
     let filter = rule.filter.compileFilter()
 
-    const higherPriorityFilters = style.rules.slice(0, idx).map(rule => rule.filter.compileFilter())
+    const higherPriorityFilters = reversedRules.slice(0, idx).map(rule => rule.filter.compileFilter())
     if (higherPriorityFilters.length > 0) {
       filter = ['all', filter, ['!', ['any', ...higherPriorityFilters]]]
     }
 
     return callback(rule, filter) || []
-  }).flat()
+  })
 }
 
 

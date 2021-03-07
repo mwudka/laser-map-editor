@@ -15,9 +15,9 @@ function App() {
   const [style, setStyle] = useState<StyleDef>({
     rules: [
       {
-        id: 'default-park-color',
-        filter: new StyleFilter('leisure', 'park'),
-        fillStyle: new FillStyle('#00ff00'),
+        id: 'default-highway-rule',
+        filter: new StyleFilter('highway'),
+        lineStyle: new LineStyle(2, '#444444'),
       },
       {
         id: 'default-building-rule',
@@ -25,19 +25,19 @@ function App() {
         fillStyle: new FillStyle('#999999'),
       },
       {
-        id: 'default-beach-color',
-        filter: new StyleFilter('natural', 'beach'),
-        fillStyle: new FillStyle('#ffff00'),
-      },
-      {
         id: 'default-water-color',
         filter: new StyleFilter('natural', 'water'),
         fillStyle: new FillStyle('#0000ff')
       },
       {
-        id: 'default-highway-rule',
-        filter: new StyleFilter('highway'),
-        lineStyle: new LineStyle(4, '#444444'),
+        id: 'default-beach-color',
+        filter: new StyleFilter('natural', 'beach'),
+        fillStyle: new FillStyle('#ffff00'),
+      },
+      {
+        id: 'default-park-color',
+        filter: new StyleFilter('leisure', 'park'),
+        fillStyle: new FillStyle('#00ff00'),
       },
     ],
   })

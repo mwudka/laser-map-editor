@@ -22,7 +22,6 @@ export default function compileMapboxStyle(style: StyleDef): mapboxgl.Style {
         tiles: ['http://mushu:8082/{z}/{x}/{y}'],
       },
     },
-    // TODO: This needs to be reversed; things at the bottom of the list cover things at the top
     layers: mapStyleRules(style, (rule, filter) => {
       const sharedLayerProps = {
         filter,
