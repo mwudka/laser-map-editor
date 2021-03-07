@@ -1,29 +1,69 @@
 .styleEditor {
-    width: 100%;
+  width: 100%;
 }
 
 .styleEditor input[type="range"] {
-    width: 50px;
+  width: 50px;
 }
 
-span.grippy {
-    content: '....';
-    width: 10px;
-    height: 20px;
-    display: inline-block;
-    overflow: hidden;
-    line-height: 5px;
-    padding: 3px 4px;
-    cursor: move;
-    vertical-align: middle;
-    margin-top: -.7em;
-    margin-right: .3em;
-    font-size: 12px;
-    font-family: sans-serif;
-    letter-spacing: 2px;
-    color: #cccccc;
-    text-shadow: 1px 0 1px black;
-  }
-  span.grippy::after {
-    content: '.. .. .. ..';
-  }
+.styleEditorRow {
+  background-color: #f0f0f0;
+  border          : 1px solid #101010;
+  padding         : 1rem;
+  margin-bottom   : 1rem;
+  display: grid;
+  grid-template-areas:
+    "handle title       title      title"
+    "handle fill-select fill-color fill-color"
+    "handle line-select line-color line-width"
+
+  ;
+  grid-template-columns: 0.4rem auto auto 1fr;
+  grid-template-rows   : auto 1fr 1fr;
+  gap                  : 0.1rem 0.5rem;
+  align-items          : center;
+}
+
+.styleEditorRow .deleteButton {
+  opacity        : 0;
+  color          : #990000;
+  text-decoration: none;
+  transition     : opacity 0.1s;
+  margin-left    : 0.5rem;
+}
+
+.styleEditorRow:hover .deleteButton {
+  opacity: 1;
+}
+
+
+.title {
+  grid-area: title;
+  font-size: 150%;
+}
+
+.handle {
+  height          : 100%;
+  grid-area       : handle;
+  background-color: #383838;
+}
+
+.fill-select {
+  grid-area: fill-select;
+}
+
+.line-select {
+  grid-area: line-select;
+}
+
+.fill-color {
+  grid-area: fill-color;
+}
+
+.line-color {
+  grid-area: line-color;
+}
+
+.line-width {
+  grid-area: line-width;
+}

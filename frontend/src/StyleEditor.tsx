@@ -91,7 +91,7 @@ export interface StyleDef {
  * @param style 
  * @param callback 
  */
-export function mapStyleRules<T>(style: StyleDef, callback: (rule: StyleRule, filter: [ExpressionName, ...any[]]) => T[]|void): T[] {
+export function mapStyleRules<T>(style: StyleDef, callback: (rule: StyleRule, filter: [ExpressionName, ...any[]]) => T[] | void): T[] {
   return style.rules.map((rule, idx) => {
     let filter = rule.filter.compileFilter()
 
@@ -123,57 +123,77 @@ function StyleRuleEditor({
   onStyleChange: () => void
   onRuleDelete: (rule: StyleRule) => void,
 }) {
-  return <span>
-    <button onClick={(e) => onRuleDelete(rule)}>X</button>
-    {rule.filter.summary()}
-    <br/>
-    Fill <input type="checkbox" checked={!!rule.fillStyle} onChange={e => {
-      if (e.target.checked) {
-        rule.fillStyle = new FillStyle('#ff0000')
-      } else {
-        rule.fillStyle = undefined
-      }
-      onStyleChange()
-    }} />
-    {ifPresent(rule.fillStyle, style => <input
-      type="color"
-      value={style.color}
-      onChange={(e) => {
-        style.color = e.target.value
-        onStyleChange()
-      }}
-    />
+  return <Draggable draggableId={rule.id} index={ruleIndex}>
+    {provided => (
+      <div className="styleEditorRow" ref={provided.innerRef} {...provided.draggableProps} {...provided.dragHandleProps}>
+        <div className="handle" />
+
+        <div className="title">
+          {rule.filter.summary()}
+          <button className="deleteButton" onClick={(e) => onRuleDelete(rule)}>delete</button>
+        </div>
+
+        <div className="fill-select">
+          <input type="checkbox" checked={!!rule.fillStyle} onChange={e => {
+            if (e.target.checked) {
+              rule.fillStyle = new FillStyle('#ff0000')
+            } else {
+              rule.fillStyle = undefined
+            }
+            onStyleChange()
+          }} />
+      Fill
+      </div>
+        <div className="fill-color">
+          {ifPresent(rule.fillStyle, style => <input
+            type="color"
+            value={style.color}
+            onChange={(e) => {
+              style.color = e.target.value
+              onStyleChange()
+            }}
+          />
+          )}
+        </div>
+        <div className="line-select">
+          <input type="checkbox" checked={!!rule.lineStyle} onChange={e => {
+            if (e.target.checked) {
+              rule.lineStyle = new LineStyle(3, '#ff0000')
+            } else {
+              rule.lineStyle = undefined
+            }
+            onStyleChange()
+          }} />
+      Line
+      </div>
+        <div className="line-color">
+          {ifPresent(rule.lineStyle, style => <input
+            type="color"
+            value={style.color}
+            onChange={(e) => {
+              style.color = e.target.value
+              onStyleChange()
+            }}
+          />
+          )}
+        </div>
+        <div className="line-width">
+          {ifPresent(rule.lineStyle, style => <input
+            type="range"
+            value={style.width}
+            onChange={(e) => {
+              style.width = parseInt(e.target.value, 10)
+              onStyleChange()
+            }}
+            min={1}
+            max={10}
+          />
+          )}
+        </div>
+      </div>
     )}
-    <br/>
-    Line <input type="checkbox" checked={!!rule.lineStyle} onChange={e => {
-      if (e.target.checked) {
-        rule.lineStyle = new LineStyle(3, '#ff0000')
-      } else {
-        rule.lineStyle = undefined
-      }
-      onStyleChange()
-    }}/>
-    {ifPresent(rule.lineStyle, style => <span><input
-      type="color"
-      value={style.color}
-      onChange={(e) => {
-        style.color = e.target.value
-        onStyleChange()
-      }}
-    />
-      <input
-        type="range"
-        value={style.width}
-        onChange={(e) => {
-          style.width = parseInt(e.target.value, 10)
-          onStyleChange()
-        }}
-        min={1}
-        max={10}
-      />
-    </span>
-    )}
-  </span>
+  </Draggable>
+
 
 }
 
@@ -206,21 +226,13 @@ export default function StyleEditor({
     onRuleReorder(result.source.index, result.destination.index)
   }
 
-
   return (
     <DragDropContext onDragEnd={onDragEnd}>
       <Droppable droppableId="styleRules">
         {(provided) => (
-          <div {...provided.droppableProps} ref={provided.innerRef}>
+          <div style={{ padding: '1rem' }} {...provided.droppableProps} ref={provided.innerRef}>
             {style.rules.map((r, idx) => (
-              <Draggable draggableId={r.id} index={idx} key={r.id}>
-                {provided => (
-                  <div ref={provided.innerRef} {...provided.draggableProps}>
-                    <span {...provided.dragHandleProps} className="grippy" />
-                    <StyleRuleEditor ruleIndex={idx} rule={r} onStyleChange={onStyleChange} onRuleDelete={onRuleDelete} />
-                  </div>
-                )}
-              </Draggable>
+              <StyleRuleEditor rule={r} ruleIndex={idx} onStyleChange={onStyleChange} onRuleDelete={onRuleDelete} key={r.id} />
             ))}
             {provided.placeholder}
           </div>

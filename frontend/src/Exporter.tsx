@@ -22,6 +22,7 @@ export default function Exporter({
         .join(' ')
     }
 
+    // TODO: some layers seem to be excluded?
     mapStyleRules(style, (rule, filter) => {
       const expression = Expression.parse(
         filter,
