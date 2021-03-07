@@ -22,7 +22,6 @@ export default function Exporter({
         .join(' ')
     }
 
-    // TODO: some layers seem to be excluded?
     mapStyleRules(style, (rule, filter) => {
       const expression = Expression.parse(
         filter,
@@ -61,16 +60,18 @@ export default function Exporter({
             case 'LineString':
               renderFeature(group, feature.geometry.coordinates)
               break
+            case 'Polygon':
             case 'MultiLineString':
-              const multilineStringGroup = group.group()
+              const compoundGeometryGroup = group.group()
               feature.geometry.coordinates.forEach((c) =>
-                renderFeature(multilineStringGroup, c)
+                renderFeature(compoundGeometryGroup, c)
               )
               break
             case 'Point':
               // TODO: Add support for exporting points
               break
             default:
+              // TODO: Add support for other geometry types
               console.log('Unsupported geometry', feature.geometry)
           }
         })
