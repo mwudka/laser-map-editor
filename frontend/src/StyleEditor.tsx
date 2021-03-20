@@ -2,6 +2,9 @@ import { ExpressionName, FillPaint, LinePaint } from 'mapbox-gl'
 import { DragDropContext, Draggable, Droppable, DropResult } from 'react-beautiful-dnd'
 import titleize from 'titleize'
 import './StyleEditor.css'
+import update from 'immutability-helper'
+import produce from 'immer'
+import { WritableDraft } from 'immer/dist/internal'
 export class IdStyleFilter {
   id: number
 
@@ -83,6 +86,7 @@ export interface StyleRule {
 }
 
 export interface StyleDef {
+  revision: string
   rules: StyleRule[]
 }
 
@@ -124,8 +128,8 @@ function StyleRuleEditor({
 }: {
   ruleIndex: number
   rule: StyleRule
-  onStyleChange: () => void
-  onRuleDelete: (rule: StyleRule) => void,
+  onStyleChange: (recipe: (style: StyleDef) => void) => void
+  onRuleDelete: (rule: StyleRule) => void
 }) {
   return <Draggable draggableId={rule.id} index={ruleIndex}>
     {provided => (
@@ -140,23 +144,27 @@ function StyleRuleEditor({
         <div className="fill-select">
           <label>
             <input type="checkbox" checked={!!rule.fillStyle} onChange={e => {
-              if (e.target.checked) {
-                rule.fillStyle = new FillStyle('#ff0000')
-              } else {
-                rule.fillStyle = undefined
-              }
-              onStyleChange()
+              onStyleChange((style: StyleDef) => {
+                let idx = style.rules.findIndex(r => r.id === rule.id)
+                if (e.target.checked) {
+                  style.rules[idx].fillStyle = new FillStyle('#ff0000')
+                } else {
+                  style.rules[idx].fillStyle = undefined
+                }
+              })
             }} />
       Fill
       </label>
         </div>
         <div className="fill-color">
-          {ifPresent(rule.fillStyle, style => <input
+          {ifPresent(rule.fillStyle, fillStyle => <input
             type="color"
-            value={style.color}
+            value={fillStyle.color}
             onChange={(e) => {
-              style.color = e.target.value
-              onStyleChange()
+              onStyleChange((style: StyleDef) => {
+                let idx = style.rules.findIndex(r => r.id === rule.id)
+                style.rules[idx].fillStyle = new FillStyle(e.target.value)
+              })
             }}
           />
           )}
@@ -164,34 +172,41 @@ function StyleRuleEditor({
         <div className="line-select">
           <label>
             <input type="checkbox" checked={!!rule.lineStyle} onChange={e => {
-              if (e.target.checked) {
-                rule.lineStyle = new LineStyle(3, '#ff0000', false)
-              } else {
-                rule.lineStyle = undefined
-              }
-              onStyleChange()
+              onStyleChange((style: StyleDef) => {
+                let idx = style.rules.findIndex(r => r.id === rule.id)
+                if (e.target.checked) {
+                  style.rules[idx].lineStyle = new LineStyle(3, '#ff0000', false)
+                } else {
+                  style.rules[idx].lineStyle = undefined
+                }
+                style.rules[idx].fillStyle = new FillStyle(e.target.value)
+              })
             }} />
       Line
       </label>
         </div>
         <div className="line-color">
-          {ifPresent(rule.lineStyle, style => <input
+          {ifPresent(rule.lineStyle, lineStyle => <input
             type="color"
-            value={style.color}
+            value={lineStyle.color}
             onChange={(e) => {
-              style.color = e.target.value
-              onStyleChange()
+              onStyleChange((style: StyleDef) => {
+                let idx = style.rules.findIndex(r => r.id === rule.id)
+                style.rules[idx].lineStyle = new LineStyle(lineStyle.width, e.target.value, lineStyle.dashed)
+              })
             }}
           />
           )}
         </div>
         <div className="line-width">
-          {ifPresent(rule.lineStyle, style => <input
+          {ifPresent(rule.lineStyle, lineStyle => <input
             type="range"
-            value={style.width}
+            value={lineStyle.width}
             onChange={(e) => {
-              style.width = parseInt(e.target.value, 10)
-              onStyleChange()
+              onStyleChange((style: StyleDef) => {
+                let idx = style.rules.findIndex(r => r.id === rule.id)
+                style.rules[idx].lineStyle = new LineStyle(parseInt(e.target.value, 10), lineStyle.color, lineStyle.dashed)
+              })
             }}
             min={1}
             max={10}
@@ -199,10 +214,12 @@ function StyleRuleEditor({
           )}
         </div>
         <div className="line-dash">
-          {ifPresent(rule.lineStyle, style => <label>
-            Dashed<input type="checkbox" checked={style.dashed} onChange={e => {
-              style.dashed = e.target.checked
-              onStyleChange()
+          {ifPresent(rule.lineStyle, lineStyle => <label>
+            Dashed<input type="checkbox" checked={lineStyle.dashed} onChange={e => {
+              onStyleChange((style: StyleDef) => {
+                let idx = style.rules.findIndex(r => r.id === rule.id)
+                style.rules[idx].lineStyle = new LineStyle(lineStyle.width, lineStyle.color, e.target.checked)
+              })
             }} /></label>)}
         </div>
       </div>
@@ -214,7 +231,7 @@ function StyleRuleEditor({
 
 interface StyleEditorProps {
   style: StyleDef
-  onStyleChange: () => void
+  onStyleChange: (recipe: (style: StyleDef) => void) => void
   onRuleDelete: (rule: StyleRule) => void
   onRuleReorder: (dragIndex: number, hoverIndex: number) => void
 }
@@ -225,6 +242,8 @@ export default function StyleEditor({
   onRuleDelete,
   onRuleReorder,
 }: StyleEditorProps) {
+
+  console.log('rendering StyleEditor')
 
   function onDragEnd(result: DropResult) {
     if (!result.destination) {

@@ -8,11 +8,16 @@ import StyleEditor, { FillStyle, LineStyle, StyleDef, StyleFilter, StyleRule } f
 import compileMapboxStyle from './compileMapboxStyle'
 import ReactDOM from 'react-dom'
 import StyleRuleCreator from './StyleRuleCreator'
+import deepFreeze from './deep-freeze'
+import produce from 'immer'
+import { uniqueId } from 'lodash'
+import { WritableDraft } from 'immer/dist/internal'
 
 function App() {
   const mapContainer = useRef<HTMLDivElement>(null)
   const [stateMap, setStateMap] = useState<mapboxgl.Map>()
-  const [style, setStyle] = useState<StyleDef>({
+  const [style, setStyle] = useState<StyleDef>(deepFreeze({
+    revision: 'style-default',
     rules: [
       {
         id: 'default-highway-rule',
@@ -40,7 +45,16 @@ function App() {
         fillStyle: new FillStyle('#00ff00'),
       },
     ],
-  })
+  }))
+  console.log('rendering app', style.revision)
+
+  const styleRef = useRef(style)
+
+  useEffect(() => {
+    console.log('syncing style to styleRef', style.revision)
+    styleRef.current = style
+  }, [style])
+
 
   useEffect(() => {
     console.log('Creating mapboxgl map')
@@ -107,13 +121,20 @@ function App() {
 
       const el = document.createElement('div')
 
+      // TODO: The state's style variable gets captured when the click event handler is installed, so it only
+      // ever has access to the default style. It needs to somehow be able to get access to the current
+      console.log('render StyleRuleCreator', styleRef.current.revision)
       ReactDOM.render(
         <StyleRuleCreator
           feature={clickedFeature}
           onRuleAdded={(rule) => {
-            style.rules.unshift(rule)
-            onStyleChange()
+            console.log('StyleRuleCreator onRuleAdded', styleRef.current.revision)
+            const newState = produce(styleRef.current, draftStyle => {
+              draftStyle.revision = uniqueId('style-')
+              draftStyle.rules.unshift(rule)
+            })
             popup.remove()
+            setNewStyle(newState)
           }}
         />,
         el
@@ -151,28 +172,33 @@ function App() {
     // eslint-disable-next-line
   }, [])
 
-  function onStyleChange() {
-    console.log(
-      'style changed',
-      style,
-      JSON.parse(JSON.stringify(compileMapboxStyle(style)))
-    )
-    setStyle({ ...style })
+  function setNewStyle(style: StyleDef) {
+    deepFreeze(style)
+    console.log('new style set', style, JSON.parse(JSON.stringify(compileMapboxStyle(style))))
     stateMap?.setStyle(compileMapboxStyle(style), { diff: true })
+    setStyle(style)
+    console.log('setNewStyle', style.revision)
+  }
+
+  function onStyleChange(recipe: (style: StyleDef) => void) {
+    setNewStyle(produce(styleRef.current, recipe))
   }
 
   function onRuleDelete(rule: StyleRule) {
     console.log('rule deleted', rule)
-    style.rules = style.rules.filter(r => r.id !== rule.id)
-    onStyleChange()
+    setNewStyle(produce(styleRef.current, draftStyle => {
+      const idx = draftStyle.rules.findIndex(r => r.id === rule.id)
+      draftStyle.rules.splice(idx, 1)
+    }))    
   }
 
   function onRuleReorder(dragIndex: number, hoverIndex: number) {
     console.log(`rule reordered from ${dragIndex} to ${hoverIndex}`)
-    const draggedRule = style.rules[dragIndex]
-    style.rules.splice(dragIndex, 1)
-    style.rules.splice(hoverIndex, 0, draggedRule)
-    onStyleChange()
+    setNewStyle(produce(styleRef.current, draftStyle => {
+      const draggedRule = draftStyle.rules[dragIndex]
+      draftStyle.rules.splice(dragIndex, 1)
+      draftStyle.rules.splice(hoverIndex, 0, draggedRule)
+    }))
   }
 
   return (
