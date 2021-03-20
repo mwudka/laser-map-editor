@@ -2,9 +2,6 @@ import { ExpressionName, FillPaint, LinePaint } from 'mapbox-gl'
 import { DragDropContext, Draggable, Droppable, DropResult } from 'react-beautiful-dnd'
 import titleize from 'titleize'
 import './StyleEditor.css'
-import update from 'immutability-helper'
-import produce from 'immer'
-import { WritableDraft } from 'immer/dist/internal'
 export class IdStyleFilter {
   id: number
 

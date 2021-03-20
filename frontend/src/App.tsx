@@ -11,7 +11,6 @@ import StyleRuleCreator from './StyleRuleCreator'
 import deepFreeze from './deep-freeze'
 import produce from 'immer'
 import { uniqueId } from 'lodash'
-import { WritableDraft } from 'immer/dist/internal'
 
 function App() {
   const mapContainer = useRef<HTMLDivElement>(null)
@@ -49,11 +48,18 @@ function App() {
   console.log('rendering app', style.revision)
 
   const styleRef = useRef(style)
+  const mapRef = useRef(stateMap)
 
   useEffect(() => {
     console.log('syncing style to styleRef', style.revision)
     styleRef.current = style
   }, [style])
+
+  useEffect(() => {
+    console.log('syncing map to mapRef')
+    mapRef.current = stateMap
+  }, [stateMap])
+
 
 
   useEffect(() => {
@@ -129,12 +135,11 @@ function App() {
           feature={clickedFeature}
           onRuleAdded={(rule) => {
             console.log('StyleRuleCreator onRuleAdded', styleRef.current.revision)
-            const newState = produce(styleRef.current, draftStyle => {
+            onStyleChange(draftStyle => {
               draftStyle.revision = uniqueId('style-')
               draftStyle.rules.unshift(rule)
             })
             popup.remove()
-            setNewStyle(newState)
           }}
         />,
         el
@@ -174,8 +179,10 @@ function App() {
 
   function setNewStyle(style: StyleDef) {
     deepFreeze(style)
-    console.log('new style set', style, JSON.parse(JSON.stringify(compileMapboxStyle(style))))
-    stateMap?.setStyle(compileMapboxStyle(style), { diff: true })
+    const compiledStyle = compileMapboxStyle(style)
+    console.log('new style set', style, JSON.parse(JSON.stringify(compiledStyle)))
+    mapRef.current!.setStyle(compiledStyle, { diff: true })
+
     setStyle(style)
     console.log('setNewStyle', style.revision)
   }
