@@ -10,7 +10,24 @@ import ReactDOM from 'react-dom'
 import StyleRuleCreator from './StyleRuleCreator'
 import deepFreeze from './deep-freeze'
 import produce from 'immer'
-import { uniqueId } from 'lodash'
+import _, { uniqueId } from 'lodash'
+
+function filterProperties(properties: any): any {
+  return _.omitBy(properties, (_, name: string) => {
+    if (name.includes(':') && !name.startsWith('addr:')) {
+      return true
+    }
+    if (name === name.toUpperCase()) {
+      return true
+    }
+    const propertiesToRemove = [
+      'website',
+      'latitude',
+      'longitude',
+    ]
+    return propertiesToRemove.includes(name.toLowerCase())
+  })
+}
 
 function App() {
   const mapContainer = useRef<HTMLDivElement>(null)
@@ -99,7 +116,7 @@ function App() {
       map.getCanvas().style.cursor = hoveredFeatures.length > 0 ? 'pointer' : ''
 
       if (hoveredFeatures.length > 0) {
-        tooltipPopup.setHTML('<pre>' + hoveredFeatures.map(feature => `id=${feature.id}: ${JSON.stringify(feature.properties, undefined, 2)}`).join('\n\n') + '</pre>')
+        tooltipPopup.setHTML('<pre>' + hoveredFeatures.map(feature => `id=${feature.id}: ${JSON.stringify(filterProperties(feature.properties), undefined, 2)}`).join('\n\n') + '</pre>')
 
         if (!tooltipPopup.isOpen()) {
           tooltipPopup.addTo(map);
