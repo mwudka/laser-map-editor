@@ -1,5 +1,5 @@
 import { mapStyleRules, StyleDef } from './StyleEditor'
-import mapboxgl, { AnyLayer } from 'mapbox-gl'
+import mapboxgl, { AnyLayer, ExpressionName } from 'mapbox-gl'
 
 function wrapInHoverDetection(
   expression: string | mapboxgl.StyleFunction | mapboxgl.Expression | undefined
@@ -13,6 +13,71 @@ function wrapInHoverDetection(
 }
 
 export default function compileMapboxStyle(style: StyleDef): mapboxgl.Style {
+  const universalLayerProps = {
+    source: 'postgis-tiles',
+    // ST_AsMVT() uses 'default' as layer name
+    'source-layer': 'default',
+    minzoom: 14,
+    maxzoom: 22,
+  }
+
+  function andNoStyleMatches(filter: [ExpressionName, ...any]) {
+    const matchesAnyStyleRule = ['any', ...style.rules.map(rule => rule.filter.compileFilter())]
+    return ['all', 
+      ['!', matchesAnyStyleRule],
+      filter
+    ]
+  }
+
+  console.log(andNoStyleMatches(['has', 'highway']))
+
+  const ghostLayers: AnyLayer[] = [
+    {
+      type: "line",
+      id: "ghost-highways",
+      paint: {
+        "line-color": wrapInHoverDetection('#C0C0C0'),
+        "line-width": 3,
+      },
+      filter: andNoStyleMatches(['has', 'highway']),
+      ...universalLayerProps
+    },
+    {
+      type: "fill",
+      id: "ghost-buildings",
+      paint: {
+        "fill-color": wrapInHoverDetection('#E0E0E0'),
+      },
+      filter: andNoStyleMatches(['has', 'building']),
+      ...universalLayerProps
+    },
+    {
+      type: "fill",
+      id: "ghost-nature-fill",
+      paint: {
+        "fill-color": wrapInHoverDetection('#D0D0D0'),
+      },
+      filter: andNoStyleMatches(['any', 
+          ['has', 'natural'],
+          ['has', 'leisure']
+      ]),
+      ...universalLayerProps
+    },
+    {
+      type: "line",
+      id: "ghost-nature-line",
+      paint: {
+        "line-color": wrapInHoverDetection('#CCCCCC'),
+      },
+      filter: andNoStyleMatches(['any', 
+          ['has', 'natural'],
+          ['has', 'leisure']
+      ]),
+      ...universalLayerProps
+    }
+  ]
+
+
   return {
     version: 8,
     sources: {
@@ -22,14 +87,10 @@ export default function compileMapboxStyle(style: StyleDef): mapboxgl.Style {
         tiles: ['http://mushu:8082/{z}/{x}/{y}'],
       },
     },
-    layers: mapStyleRules(style, (rule, filter) => {
+    layers: ghostLayers.concat(mapStyleRules(style, (rule, filter) => {
       const sharedLayerProps = {
         filter,
-        source: 'postgis-tiles',
-        // ST_AsMVT() uses 'default' as layer name
-        'source-layer': 'default',
-        minzoom: 14,
-        maxzoom: 22,
+        ...universalLayerProps
       }
 
       let ret: AnyLayer[] = []
@@ -64,6 +125,6 @@ export default function compileMapboxStyle(style: StyleDef): mapboxgl.Style {
       }
 
       return ret
-    }),
+    })),
   }
 }
