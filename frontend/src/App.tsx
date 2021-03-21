@@ -34,6 +34,7 @@ function App() {
   const [stateMap, setStateMap] = useState<mapboxgl.Map>()
   const [style, setStyle] = useState<StyleDef>(deepFreeze({
     revision: 'style-default',
+    savedPOIs: [],
     rules: [
       {
         id: 'default-highway-rule',
@@ -115,7 +116,7 @@ function App() {
       hoveredFeatures.forEach((f) => setHoverState(f, true))
       map.getCanvas().style.cursor = hoveredFeatures.length > 0 ? 'pointer' : ''
 
-      if (hoveredFeatures.length > 0) {
+      if (hoveredFeatures.length > 0 && hoveredFeatures[0].source === "postgis-tiles") {
         tooltipPopup.setHTML('<pre>' + hoveredFeatures.map(feature => `id=${feature.id}: ${JSON.stringify(filterProperties(feature.properties), undefined, 2)}`).join('\n\n') + '</pre>')
 
         if (!tooltipPopup.isOpen()) {
@@ -142,35 +143,54 @@ function App() {
       }
       let clickedFeature = features[0]
 
-      const el = document.createElement('div')
+      if (clickedFeature.source === "postgis-tiles") {
+        const el = document.createElement('div')
 
-      // TODO: The state's style variable gets captured when the click event handler is installed, so it only
-      // ever has access to the default style. It needs to somehow be able to get access to the current
-      console.log('render StyleRuleCreator', styleRef.current.revision)
-      ReactDOM.render(
-        <StyleRuleCreator
-          feature={clickedFeature}
-          onRuleAdded={(rule) => {
-            console.log('StyleRuleCreator onRuleAdded', styleRef.current.revision)
-            onStyleChange(draftStyle => {
-              draftStyle.revision = uniqueId('style-')
-              draftStyle.rules.unshift(rule)
-            })
-            popup.remove()
-          }}
-        />,
-        el
-      )
+        // TODO: The state's style variable gets captured when the click event handler is installed, so it only
+        // ever has access to the default style. It needs to somehow be able to get access to the current
+        console.log('render StyleRuleCreator', styleRef.current.revision)
+        ReactDOM.render(
+          <StyleRuleCreator
+            feature={clickedFeature}
+            onRuleAdded={(rule) => {
+              console.log('StyleRuleCreator onRuleAdded', styleRef.current.revision)
+              onStyleChange(draftStyle => {
+                draftStyle.revision = uniqueId('style-')
+                draftStyle.rules.unshift(rule)
+              })
+              popup.remove()
+            }}
+          />,
+          el
+        )
 
-      const popup = new mapboxgl.Popup({
-        closeButton: true,
-        closeOnClick: true,
-        focusAfterOpen: true,
-        maxWidth: '30rem',
-      })
-        .setDOMContent(el)
-        .setLngLat(e.lngLat)
-        .addTo(map)
+        const popup = new mapboxgl.Popup({
+          closeButton: true,
+          closeOnClick: true,
+          focusAfterOpen: true,
+          maxWidth: '30rem',
+        })
+          .setDOMContent(el)
+          .setLngLat(e.lngLat)
+          .addTo(map)
+      } else if (clickedFeature.source === "mapbox") {
+        console.log('adding POI', clickedFeature)
+
+        const geometry = clickedFeature.geometry
+        if (geometry.type !== "Point") {
+          console.warn('Unable to add POI with unsupported geometry', geometry)
+          return
+        }
+
+        onStyleChange(style => {
+          style.savedPOIs.unshift({
+            id: '' + clickedFeature.id!,
+            // TODO: Evaluate expression to compute name based on "text-field" style
+            text: clickedFeature.properties!["name_en"] || clickedFeature.properties!['name'] || '' + clickedFeature.id!,
+            position: geometry.coordinates as [number, number],
+          })
+        })
+      }
     })
 
     map.addControl(

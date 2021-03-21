@@ -2,12 +2,13 @@ import { mapStyleRules, StyleDef } from './StyleEditor'
 import mapboxgl, { AnyLayer, ExpressionName } from 'mapbox-gl'
 
 function wrapInHoverDetection(
-  expression: string | mapboxgl.StyleFunction | mapboxgl.Expression | undefined
+  expression: string | mapboxgl.StyleFunction | mapboxgl.Expression | undefined,
+  hoverValue: any = '#ff0000'
 ): mapboxgl.Expression {
   return [
     'case',
     ['boolean', ['feature-state', 'hover'], false],
-    '#ff0000',
+    hoverValue,
     expression,
   ]
 }
@@ -22,61 +23,130 @@ export default function compileMapboxStyle(style: StyleDef): mapboxgl.Style {
   }
 
   function andNoStyleMatches(filter: [ExpressionName, ...any]) {
-    const matchesAnyStyleRule = ['any', ...style.rules.map(rule => rule.filter.compileFilter())]
-    return ['all', 
-      ['!', matchesAnyStyleRule],
-      filter
+    const matchesAnyStyleRule = [
+      'any',
+      ...style.rules.map((rule) => rule.filter.compileFilter()),
     ]
+    return ['all', ['!', matchesAnyStyleRule], filter]
   }
-
-  console.log(andNoStyleMatches(['has', 'highway']))
 
   const ghostLayers: AnyLayer[] = [
     {
-      type: "line",
-      id: "ghost-highways",
+      type: 'line',
+      id: 'ghost-highways',
       paint: {
-        "line-color": wrapInHoverDetection('#C0C0C0'),
-        "line-width": 3,
+        'line-color': wrapInHoverDetection('#C0C0C0'),
+        'line-width': 3,
       },
       filter: andNoStyleMatches(['has', 'highway']),
-      ...universalLayerProps
+      ...universalLayerProps,
     },
     {
-      type: "fill",
-      id: "ghost-buildings",
+      type: 'fill',
+      id: 'ghost-buildings',
       paint: {
-        "fill-color": wrapInHoverDetection('#E0E0E0'),
+        'fill-color': wrapInHoverDetection('#E0E0E0'),
       },
       filter: andNoStyleMatches(['has', 'building']),
-      ...universalLayerProps
+      ...universalLayerProps,
     },
     {
-      type: "fill",
-      id: "ghost-nature-fill",
+      type: 'fill',
+      id: 'ghost-nature-fill',
       paint: {
-        "fill-color": wrapInHoverDetection('#D0D0D0'),
+        'fill-color': wrapInHoverDetection('#D0D0D0'),
       },
-      filter: andNoStyleMatches(['any', 
-          ['has', 'natural'],
-          ['has', 'leisure']
+      filter: andNoStyleMatches([
+        'any',
+        ['has', 'natural'],
+        ['has', 'leisure'],
       ]),
-      ...universalLayerProps
+      ...universalLayerProps,
     },
     {
-      type: "line",
-      id: "ghost-nature-line",
+      type: 'line',
+      id: 'ghost-nature-line',
       paint: {
-        "line-color": wrapInHoverDetection('#CCCCCC'),
+        'line-color': wrapInHoverDetection('#CCCCCC'),
       },
-      filter: andNoStyleMatches(['any', 
-          ['has', 'natural'],
-          ['has', 'leisure']
+      filter: andNoStyleMatches([
+        'any',
+        ['has', 'natural'],
+        ['has', 'leisure'],
       ]),
-      ...universalLayerProps
-    }
+      ...universalLayerProps,
+    },
   ]
 
+  const poiLayerFilter =  [
+      '!', ['any', ...style.savedPOIs.map(poi => ['==', parseInt(poi.id, 10), ['id']])]
+    ]
+  const poiLayer: AnyLayer = {
+    id: 'mapbox-pois',
+    type: 'symbol',
+    source: 'mapbox',
+    'source-layer': 'poi_label',
+    layout: {
+      'text-field': ['coalesce', ['get', 'name_en'], ['get', 'name']],
+    },
+    paint: {
+      'text-opacity': wrapInHoverDetection([
+        'case',
+        ['any', ...style.savedPOIs.map(poi => ['==', parseInt(poi.id, 10), ['id']])],
+        1.0,
+        0.5,
+      ], 1.0),
+      'text-color': 'black',      
+      'text-halo-width': 5,
+      'text-halo-blur': 0.5,
+      "text-halo-color": wrapInHoverDetection('white'),
+    },
+    // filter: poiLayerFilter
+  }
+
+  console.log(poiLayerFilter)
+
+  const customLayers = mapStyleRules(style, (rule, filter) => {
+    const sharedLayerProps = {
+      filter,
+      ...universalLayerProps,
+    }
+
+    let ret: AnyLayer[] = []
+
+    if (rule.fillStyle) {
+      const paint = rule.fillStyle.compileStyle()
+      // TODO: Don't assume fill-color is set
+      paint['fill-color'] = wrapInHoverDetection(paint['fill-color'])
+      ret.push({
+        ...sharedLayerProps,
+        id: `${rule.id}-fill`,
+        paint,
+        type: 'fill',
+      })
+    }
+
+    if (rule.lineStyle) {
+      const paint = rule.lineStyle.compileStyle()
+      // TODO: Don't assume line-color is set
+      paint['line-color'] = wrapInHoverDetection(paint['line-color'])
+      ret.push({
+        ...sharedLayerProps,
+        id: `${rule.id}-line`,
+        type: 'line',
+        paint,
+      })
+    }
+
+    // TODO: Should this be a warn? Or just an FYI?
+    if (ret.length === 0) {
+      console.warn(`Invalid rule style ${JSON.stringify(rule, null, 2)}`)
+    }
+
+    return ret
+  })
+
+  const layers = [...ghostLayers, ...customLayers, poiLayer]
 
   return {
     version: 8,
@@ -86,45 +156,12 @@ export default function compileMapboxStyle(style: StyleDef): mapboxgl.Style {
         // tiles: ['http://localhost:8082/{z}/{x}/{y}'],
         tiles: ['http://mushu:8082/{z}/{x}/{y}'],
       },
+      mapbox: {
+        url: 'mapbox://mapbox.mapbox-streets-v8',
+        type: 'vector',
+      },
     },
-    layers: ghostLayers.concat(mapStyleRules(style, (rule, filter) => {
-      const sharedLayerProps = {
-        filter,
-        ...universalLayerProps
-      }
-
-      let ret: AnyLayer[] = []
-
-      if (rule.fillStyle) {
-        const paint = rule.fillStyle.compileStyle()
-        // TODO: Don't assume fill-color is set
-        paint['fill-color'] = wrapInHoverDetection(paint['fill-color'])
-        ret.push({
-          ...sharedLayerProps,
-          id: `${rule.id}-fill`,
-          paint,
-          type: 'fill',
-        })
-      }
-
-      if (rule.lineStyle) {
-        const paint = rule.lineStyle.compileStyle()
-        // TODO: Don't assume line-color is set
-        paint['line-color'] = wrapInHoverDetection(paint['line-color'])
-        ret.push({
-          ...sharedLayerProps,
-          id: `${rule.id}-line`,
-          type: 'line',
-          paint,
-        })
-      }
-
-      // TODO: Should this be a warn? Or just an FYI?
-      if (ret.length === 0) {
-        console.warn(`Invalid rule style ${JSON.stringify(rule, null, 2)}`)
-      }
-
-      return ret
-    })),
+    glyphs: 'mapbox://fonts/mwudka/{fontstack}/{range}.pbf',
+    layers,
   }
 }

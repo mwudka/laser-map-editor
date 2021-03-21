@@ -83,6 +83,17 @@ export default function Exporter({
         })
     })
 
+    const poisGroup = svg.group()
+
+    style.savedPOIs.forEach(poi => {
+      const pos = map.project(poi.position as [number, number])
+
+      const markerSize = 10
+
+      poisGroup.circle(markerSize).cx(pos.x).cy(pos.y).fill('#00ff00')
+      poisGroup.text(poi.text).cx(pos.x).cy(pos.y + markerSize).stroke('#0000ff')
+    })
+
     const blob = new Blob([svg.svg()], { type: 'image/svg+xml' })
     const el = document.createElement('a')
     el.href = URL.createObjectURL(blob)

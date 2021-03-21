@@ -1,4 +1,4 @@
-import { ExpressionName, FillPaint, LinePaint } from 'mapbox-gl'
+import { ExpressionName, FillPaint, LinePaint, LngLatLike } from 'mapbox-gl'
 import { DragDropContext, Draggable, Droppable, DropResult } from 'react-beautiful-dnd'
 import titleize from 'titleize'
 import './StyleEditor.css'
@@ -82,9 +82,16 @@ export interface StyleRule {
   fillStyle?: FillStyle
 }
 
+export interface SavedPOI {
+  id: string,
+  position: LngLatLike,
+  text: string
+}
+
 export interface StyleDef {
   revision: string
-  rules: StyleRule[]
+  rules: StyleRule[],
+  savedPOIs: SavedPOI[],
 }
 
 /**
@@ -176,7 +183,6 @@ function StyleRuleEditor({
                 } else {
                   style.rules[idx].lineStyle = undefined
                 }
-                style.rules[idx].fillStyle = new FillStyle(e.target.value)
               })
             }} />
       Line
