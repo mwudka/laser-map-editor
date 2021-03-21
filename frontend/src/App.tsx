@@ -174,21 +174,28 @@ function App() {
           .setLngLat(e.lngLat)
           .addTo(map)
       } else if (clickedFeature.source === "mapbox") {
-        console.log('adding POI', clickedFeature)
-
         const geometry = clickedFeature.geometry
         if (geometry.type !== "Point") {
           console.warn('Unable to add POI with unsupported geometry', geometry)
           return
         }
 
+        console.log('toggling POI', clickedFeature)
+
         onStyleChange(style => {
-          style.savedPOIs.unshift({
-            id: '' + clickedFeature.id!,
-            // TODO: Evaluate expression to compute name based on "text-field" style
-            text: clickedFeature.properties!["name_en"] || clickedFeature.properties!['name'] || '' + clickedFeature.id!,
-            position: geometry.coordinates as [number, number],
-          })
+          const existingPOIIndex = styleRef.current.savedPOIs.findIndex(poi => poi.id === clickedFeature.id?.toString())
+          const poiExists = existingPOIIndex !== -1
+
+          if (poiExists) {
+            style.savedPOIs.splice(existingPOIIndex, 1)
+          } else {          
+            style.savedPOIs.unshift({
+              id: '' + clickedFeature.id!,
+              // TODO: Evaluate expression to compute name based on "text-field" style
+              text: clickedFeature.properties!["name_en"] || clickedFeature.properties!['name'] || '' + clickedFeature.id!,
+              position: geometry.coordinates as [number, number],
+            })
+          }
         })
       }
     })
