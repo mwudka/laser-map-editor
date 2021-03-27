@@ -87,6 +87,8 @@ function App() {
       minZoom: 14,
       style: compileMapboxStyle(style),
       hash: true,
+      zoom: 15,
+      center: {lat: 47.567995, lng: -122.274154}
     })
 
     let hoveredFeatures: mapboxgl.MapboxGeoJSONFeature[] = []
