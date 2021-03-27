@@ -230,7 +230,7 @@ function App() {
 
     setStateMap(map)
 
-    map.showTileBoundaries = true
+    map.showTileBoundaries = !!process.env.REACT_APP_SHOW_TILE_BOUNDARIES
 
     return () => {
       console.log('Removing map')
