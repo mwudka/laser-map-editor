@@ -1,6 +1,8 @@
 import { SVG, Container as SVGContainer } from '@svgdotjs/svg.js'
 import { Expression } from './expression'
 import { mapStyleRules, StyleDef } from './StyleEditor'
+/* eslint import/no-webpack-loader-syntax: off */
+import layouts from '!!./makiLoader.js!./makiLoader.js'
 
 export default function Exporter({
   map,
@@ -82,16 +84,28 @@ export default function Exporter({
           }
         })
     })
-
+    
     const poisGroup = svg.group()
 
     style.savedPOIs.forEach(poi => {
       const pos = map.project(poi.position as [number, number])
 
-      const markerSize = 10
+      const currentPOIGroup = poisGroup.group()
 
-      poisGroup.circle(markerSize).cx(pos.x).cy(pos.y).fill('#000000')
-      poisGroup.text(poi.text).cx(pos.x).cy(pos.y + markerSize).stroke('#000000')
+      const text = currentPOIGroup.text(poi.text).stroke('#000000')
+      // TODO: Positioning is slightly off
+      text.cx(text.width() / 2)
+      const spriteSVG = layouts[poi.sprite]
+      // TODO: Don't assume it's defined
+      const sprite = SVG().group().svg(spriteSVG, true)
+      sprite.first().children().forEach(el => {
+        currentPOIGroup.add(el.clone())
+      })
+
+      currentPOIGroup.cx(pos.x).cy(pos.y)
+
+      
+      poisGroup.add(currentPOIGroup)
     })
 
     const blob = new Blob([svg.svg()], { type: 'image/svg+xml' })

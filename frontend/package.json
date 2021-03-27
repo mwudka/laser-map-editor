@@ -3,6 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "dependencies": {
+    "@mapbox/maki": "^6.2.0",
     "@mapbox/mapbox-gl-geocoder": "^4.7.0",
     "@svgdotjs/svg.js": "^3.0.16",
     "@testing-library/jest-dom": "^5.11.4",
@@ -49,6 +50,7 @@
   "devDependencies": {
     "@types/lodash": "^4.14.168",
     "@types/mapbox-gl": "^2.1.0",
+    "@types/mapbox__maki": "^6.2.1",
     "@types/mapbox__mapbox-gl-geocoder": "^4.7.0",
     "@types/react": "^17.0.2",
     "@types/react-beautiful-dnd": "^13.0.0",

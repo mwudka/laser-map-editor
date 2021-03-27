@@ -78,9 +78,6 @@ export default function compileMapboxStyle(style: StyleDef): mapboxgl.Style {
     },
   ]
 
-  const poiLayerFilter =  [
-      '!', ['any', ...style.savedPOIs.map(poi => ['==', parseInt(poi.id, 10), ['id']])]
-    ]
   const poiLayer: AnyLayer = {
     id: 'mapbox-pois',
     type: 'symbol',
@@ -88,23 +85,64 @@ export default function compileMapboxStyle(style: StyleDef): mapboxgl.Style {
     'source-layer': 'poi_label',
     layout: {
       'text-field': ['coalesce', ['get', 'name_en'], ['get', 'name']],
+      'icon-image': [
+        'case',
+        ['has', 'maki_beta'],
+        ['image', ['concat', ['get', 'maki_beta'], '-15']],
+        ['image', ['concat', ['get', 'maki'], '-15']],
+      ],
+      'icon-allow-overlap': false,
+      'text-allow-overlap': false,
+      'text-anchor': [
+        'step',
+        ['zoom'],
+        ['step', ['get', 'sizerank'], 'center', 5, 'top'],
+        17,
+        ['step', ['get', 'sizerank'], 'center', 13, 'top'],
+      ],
+      'text-offset': [
+        'step',
+        ['zoom'],
+        [
+          'step',
+          ['get', 'sizerank'],
+          ['literal', [0, 0]],
+          5,
+          ['literal', [0, 0.75]],
+        ],
+        17,
+        [
+          'step',
+          ['get', 'sizerank'],
+          ['literal', [0, 0]],
+          13,
+          ['literal', [0, 0.75]],
+        ],
+      ],
     },
     paint: {
-      'text-opacity': wrapInHoverDetection([
-        'case',
-        ['any', ...style.savedPOIs.map(poi => ['==', parseInt(poi.id, 10), ['id']])],
-        1.0,
-        0.5,
-      ], 1.0),
-      'text-color': 'black',      
+      'text-opacity': wrapInHoverDetection(
+        [
+          'case',
+          [
+            'any',
+            ...style.savedPOIs.map((poi) => [
+              '==',
+              parseInt(poi.id, 10),
+              ['id'],
+            ]),
+          ],
+          1.0,
+          0.5,
+        ],
+        1.0
+      ),
+      'text-color': 'black',
       'text-halo-width': 5,
       'text-halo-blur': 0.5,
-      "text-halo-color": wrapInHoverDetection('white'),
-    },
-    // filter: poiLayerFilter
+      'text-halo-color': wrapInHoverDetection('white'),
+    }
   }
-
-  console.log(poiLayerFilter)
 
   const customLayers = mapStyleRules(style, (rule, filter) => {
     const sharedLayerProps = {
@@ -154,14 +192,16 @@ export default function compileMapboxStyle(style: StyleDef): mapboxgl.Style {
       'postgis-tiles': {
         type: 'vector',
         // tiles: ['http://localhost:8082/{z}/{x}/{y}'],
-        tiles: ['http://mushu:8082/{z}/{x}/{y}'],
+        tiles: [process.env.REACT_APP_TILE_SERVER!],
       },
       mapbox: {
         url: 'mapbox://mapbox.mapbox-streets-v8',
         type: 'vector',
       },
     },
-    glyphs: 'mapbox://fonts/mwudka/{fontstack}/{range}.pbf',
+    glyphs: process.env.REACT_APP_GLYPHS,
+    // TODO: Make this local icon sprites?
+    sprite: process.env.REACT_APP_SPRITE,
     layers,
   }
 }

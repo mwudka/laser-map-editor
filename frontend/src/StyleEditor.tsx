@@ -85,7 +85,8 @@ export interface StyleRule {
 export interface SavedPOI {
   id: string,
   position: LngLatLike,
-  text: string
+  text: string,
+  sprite: string,
 }
 
 export interface StyleDef {

@@ -194,6 +194,9 @@ function App() {
               // TODO: Evaluate expression to compute name based on "text-field" style
               text: clickedFeature.properties!["name_en"] || clickedFeature.properties!['name'] || '' + clickedFeature.id!,
               position: geometry.coordinates as [number, number],
+              sprite: clickedFeature.properties!["maki_beta"] || clickedFeature.properties!["maki"]
+              // TODO: Evaluate expression to get icon
+
             })
           }
         })
