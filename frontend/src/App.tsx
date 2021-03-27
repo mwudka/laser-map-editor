@@ -122,13 +122,30 @@ function App() {
         if (!tooltipPopup.isOpen()) {
           tooltipPopup.addTo(map);
         }
+        tooltipPopup.setLngLat(e.lngLat);
+      } else if (hoveredFeatures.length > 0 && hoveredFeatures[0].source === "mapbox") {
+        const geometry = hoveredFeatures[0].geometry
+        if (geometry.type != "Point") {
+          console.error('Non-point POI', hoveredFeatures[0])
+          return
+        }
+
+        // TODO: This code is duplicated
+        const existingPOIIndex = styleRef.current.savedPOIs.findIndex(poi => poi.id === hoveredFeatures[0].id?.toString())
+        const poiExists = existingPOIIndex !== -1
+
+        tooltipPopup.setHTML(poiExists ? 'Click to remove from map' : 'Click to add to map')
+        if (!tooltipPopup.isOpen()) {
+          tooltipPopup.addTo(map);
+        } 
+        tooltipPopup.setLngLat([geometry.coordinates[0], geometry.coordinates[1]])
       } else {
         if (tooltipPopup.isOpen()) {
           tooltipPopup.remove();
         }
       }
 
-      tooltipPopup.setLngLat(e.lngLat);
+      
     })
     map.on('mouseout', (e) => {
       hoveredFeatures.forEach((f) => setHoverState(f, false))
