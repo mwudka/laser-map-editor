@@ -1,4 +1,4 @@
-import { SVG, Container as SVGContainer } from '@svgdotjs/svg.js'
+import { SVG, Container as SVGContainer, Dom } from '@svgdotjs/svg.js'
 import { Expression } from './expression'
 import { mapStyleRules, StyleDef } from './StyleEditor'
 /* eslint import/no-webpack-loader-syntax: off */
@@ -12,7 +12,7 @@ export default function Exporter({
   style: StyleDef
 }) {
   function exportMap() {
-    const svg = SVG().size('100%', '100%')
+    const svg = SVG().size('100%', '100%').attr('xmlns:inkscape', "http://www.inkscape.org/namespaces/inkscape")
 
     function featureToLineString(coordinates: GeoJSON.Position[]): string {
       return coordinates
@@ -24,13 +24,20 @@ export default function Exporter({
         .join(' ')
     }
 
+    function inkscapeLayer<T extends Dom>(dom: T, layerName: string): T {
+      const inkscapeNS = "http://www.inkscape.org/namespaces/inkscape"
+      return dom.attr("inkscape:label", layerName, inkscapeNS).attr("inkscape:groupmode", "layer", inkscapeNS)
+    }
+
+    const featuresGroup = inkscapeLayer(svg.group(), "Features")
+
     mapStyleRules(style, (rule, filter) => {
       const expression = Expression.parse(
         filter,
         'boolean'
       )
 
-      const group = svg.group()
+      const group = inkscapeLayer(featuresGroup.group(), rule.filter.summary())
       map
         ?.queryRenderedFeatures()
         .filter((f) => expression.evaluate(f))
@@ -85,7 +92,7 @@ export default function Exporter({
         })
     })
     
-    const poisGroup = svg.group()
+    const poisGroup = inkscapeLayer(svg.group(), "POIs")
 
     style.savedPOIs.forEach(poi => {
       const pos = map.project(poi.position as [number, number])

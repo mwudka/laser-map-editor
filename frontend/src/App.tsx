@@ -125,7 +125,7 @@ function App() {
         tooltipPopup.setLngLat(e.lngLat);
       } else if (hoveredFeatures.length > 0 && hoveredFeatures[0].source === "mapbox") {
         const geometry = hoveredFeatures[0].geometry
-        if (geometry.type != "Point") {
+        if (geometry.type !== "Point") {
           console.error('Non-point POI', hoveredFeatures[0])
           return
         }
