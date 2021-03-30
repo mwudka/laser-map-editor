@@ -232,6 +232,7 @@ function App() {
 
     setStateMap(map)
 
+    console.log('showTileBoundaries', process.env.REACT_APP_SHOW_TILE_BOUNDARIES)
     map.showTileBoundaries = !!process.env.REACT_APP_SHOW_TILE_BOUNDARIES
 
     return () => {

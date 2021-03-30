@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"embed"
 	"fmt"
 	"github.com/joho/godotenv"
 	"log"
@@ -11,18 +12,20 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/julienschmidt/httprouter"
-	_ "github.com/lib/pq"
 	"github.com/jackc/pgx/v4/pgxpool"
+	_ "github.com/lib/pq"
 
+	"github.com/go-chi/chi/v5"
+	"github.com/go-chi/chi/v5/middleware"
 )
 
 var pool *pgxpool.Pool
 
-func Tile(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
-	z, _ := strconv.Atoi(ps.ByName("z"))
-	x, _ := strconv.Atoi(ps.ByName("x"))
-	y, _ := strconv.Atoi(ps.ByName("y"))
+func Tile(w http.ResponseWriter, r *http.Request) {
+	// TODO: Handle non-int requests
+	z, _ := strconv.Atoi(chi.URLParam(r, "z"))
+	x, _ := strconv.Atoi(chi.URLParam(r, "x"))
+	y, _ := strconv.Atoi(chi.URLParam(r, "y"))
 
 	w.Header().Set("Access-Control-Allow-Origin", "*")
 
@@ -95,6 +98,9 @@ func fileExists(path string) bool {
 	return !os.IsNotExist(err)
 }
 
+//go:embed frontend/build
+var frontend embed.FS
+
 func main() {
 	var err error
 	if fileExists(".env") {
@@ -121,15 +127,22 @@ func main() {
 	}
 	defer pool.Close()
 
-	router := httprouter.New()
-	router.GET("/:z/:x/:y", Tile)
+	r := chi.NewRouter()
+	r.Use(middleware.Logger)
 
-	if err = http.ListenAndServe("0.0.0.0:8082", router); err != nil {
+	r.Get("/api/v1/tile/{z}/{x}/{y}", Tile)
+
+	var staticFS = http.FS(frontend)
+	fs := http.FileServer(staticFS)
+
+
+	r.Get("/*", func(writer http.ResponseWriter, request *http.Request) {
+		request.URL.Path = "/frontend/build/" + request.URL.Path
+
+		fs.ServeHTTP(writer, request)
+	})
+
+	if err = http.ListenAndServe("0.0.0.0:8082", r); err != nil {
 		panic(err)
 	}
-
-
-
-
-
 }

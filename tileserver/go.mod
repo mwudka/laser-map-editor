@@ -1,9 +1,10 @@
 module tileserver
 
-go 1.15
+go 1.16
 
 require (
 	github.com/antlr/antlr4 v0.0.0-20210129115459-e50ecf496158 // indirect
+	github.com/go-chi/chi/v5 v5.0.2 // indirect
 	github.com/jackc/pgx/v4 v4.9.2
 	github.com/joho/godotenv v1.3.0
 	github.com/julienschmidt/httprouter v1.3.0
