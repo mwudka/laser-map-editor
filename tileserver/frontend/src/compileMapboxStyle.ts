@@ -189,13 +189,13 @@ export default function compileMapboxStyle(style: StyleDef): mapboxgl.Style {
 
   console.log('REACT_APP_GLYPHS', process.env.REACT_APP_GLYPHS)
   console.log('REACT_APP_SPRITE', process.env.REACT_APP_SPRITE)
+  console.log('REACT_APP_TILE_SOURCE', process.env.REACT_APP_TILE_SOURCE)
   return {
     version: 8,
     sources: {
       'postgis-tiles': {
         type: 'vector',
-        // tiles: ['http://localhost:8082/{z}/{x}/{y}'],
-        tiles: ['/api/v1/tile/{z}/{x}/{y}'],
+        tiles: [process.env.REACT_APP_TILE_SOURCE!],
       },
       mapbox: {
         url: 'mapbox://mapbox.mapbox-streets-v8',
