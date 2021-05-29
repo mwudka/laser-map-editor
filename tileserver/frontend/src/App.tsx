@@ -91,7 +91,7 @@ function App() {
       center: {lat: 47.567995, lng: -122.274154}
     })
 
-    map.showTileBoundaries = process.env.REACT_APP_SHOW_TILE_BOUNDARIES == 'true';
+    map.showTileBoundaries = process.env.REACT_APP_SHOW_TILE_BOUNDARIES === 'true';
     console.log('map.showTileBoundarie', map.showTileBoundaries)
     
     let hoveredFeatures: mapboxgl.MapboxGeoJSONFeature[] = []
