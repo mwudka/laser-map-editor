@@ -109,8 +109,8 @@ func main() {
 		}
 	}
 
-	if fileExists(".env.local") {
-		if err = godotenv.Load(".env.local"); err != nil {
+	if fileExists(".env.development.local") {
+		if err = godotenv.Load(".env.development.local"); err != nil {
 			log.Fatal(err)
 		}
 	}
