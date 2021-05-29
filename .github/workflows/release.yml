@@ -33,3 +33,9 @@ jobs:
           ${{ runner.os }}-build-
           ${{ runner.os }}-
     - run: ./build-release.sh
+    - name: Archive production artifacts
+      uses: actions/upload-artifact@v2
+      with:
+        name: tileserver-linux-amd64
+        path: |
+          tileserver/tileserver-linux-amd64
