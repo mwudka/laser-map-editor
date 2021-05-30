@@ -1,0 +1,36 @@
+version: "3.9"  # optional since v1.27.0
+services:
+  download-osm:
+    build:
+      dockerfile: download-osm.Dockerfile
+      context: .
+    volumes:
+      - ./osm-download:/osm-download
+    command: download-osm planet -- -d /download
+  osm2pgsql:
+    build:
+      dockerfile: osm2pgsql.Dockerfile
+      context: .
+    volumes:
+      - ./config.lua:/config.lua
+      - ./osm-download:/osm-download
+    environment:
+      PGPASSWORD: osm
+    command: -c "osm2pgsql --create --database=osm_planet --host=postgis --user=osm_planet -C 0 --slim --flat-nodes=nodes --hstore --output=flex --style=/config.lua --drop /osm-download/*.pbf"
+  postgis:
+    image: postgis/postgis:13-3.1
+    volumes:
+      - ./pg_data:/var/lib/postgresql/data/pgdata
+      - ./01-create-hstore.sql:/docker-entrypoint-initdb.d/01-create-hstore.sql
+    environment:
+      PGDATA: /var/lib/postgresql/data/pgdata
+      POSTGRES_USER: osm_planet
+      POSTGRES_PASSWORD: osm
+      POSTGRES_DB: osm_planet
+  tileserver:
+    image: ghcr.io/mwudka/laser-map-editor:latest
+    environment:
+      TILESERVER_DB_CONNECTION_STRING: postgres://osm_planet:osm@postgis:5432/osm_planet
+    ports:
+      - 168.119.78.32:80:8082
+      - 100.125.119.76:80:8082

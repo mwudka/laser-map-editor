@@ -1,3 +1,5 @@
+# Local dev
+
 ## Running tileserver locally
 
 Create `.env.development.local` with `TILESERVER_DB_CONNECTION_STRING`
@@ -8,10 +10,26 @@ Create a `.env.development.local` file with `REACT_APP_MAPBOX_ACCESS_TOKEN`.
 
 Run via `npm start`
 
-## Running in production
+# Production
 
-The GitHub action builds a docker container and publishes it at ghcr.io/mwudka/laser-map-editor.latest.
+The GitHub action builds the frontend code, builds the go server (which includes the frontend code), builds a container,
+and pushes the result to ghcr.io/mwudka/laser-map-editor:latest.
 
-To run in production, do something like:
+A docker-compose file in `./production/` defines services for postgis, downloading the OSM planet file, loading it into 
+postgis, and running the server.
 
-    docker run -e TILESERVER_DB_CONNECTION_STRING='postgres://postgres:PASSWORD@9ba89918617f:5432/osm_planet' --link 9ba89918617f -p 8082:8082 ghcr.io/mwudka/laser-map-editor:latest
+## OSM import process
+
+First, download the latest planet data:
+
+    sudo docker-compose run download-osm
+
+The downloaded PBF should appear in `osm-download`. Make sure there is exactly one PBF file in `osm-download`.
+
+Second, import the new tiledata into PG. This takes ~12hrs. It's probably best to do in a screen session.
+
+     sudo docker-compose run osm2pgsql
+
+Finally, restart the tileserver:
+
+    sudo docker-compose up -d tileserver
