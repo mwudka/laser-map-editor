@@ -32,7 +32,8 @@ jobs:
           ${{ runner.os }}-build-${{ env.cache-name }}-
           ${{ runner.os }}-build-
           ${{ runner.os }}-
-    - run: ./build-release.sh
+    # Windows is great and makes it very difficult to consistently set the execute bit
+    - run: chmod +x ./build-release.sh && ./build-release.sh
     - name: Archive production artifacts
       uses: actions/upload-artifact@v2
       with:

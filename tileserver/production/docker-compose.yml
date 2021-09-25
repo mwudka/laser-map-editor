@@ -22,6 +22,8 @@ services:
     volumes:
       - ./pg_data:/var/lib/postgresql/data/pgdata
       - ./01-create-hstore.sql:/docker-entrypoint-initdb.d/01-create-hstore.sql
+    ports:
+      - 100.73.115.42:5432:5432
     environment:
       PGDATA: /var/lib/postgresql/data/pgdata
       POSTGRES_USER: osm_planet
@@ -31,6 +33,13 @@ services:
     image: ghcr.io/mwudka/laser-map-editor:latest
     environment:
       TILESERVER_DB_CONNECTION_STRING: postgres://osm_planet:osm@postgis:5432/osm_planet
+    volumes:
+      - letsencrypt:/letsencrypt
+      - ./.env:/.env
     ports:
       - 168.119.78.32:80:8082
-      - 100.125.119.76:80:8082
+      - 100.73.115.42:80:8082
+      - 168.119.78.32:443:8443
+      - 100.73.115.42:443:8443
+volumes:
+  letsencrypt:

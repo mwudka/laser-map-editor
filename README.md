@@ -18,6 +18,15 @@ and pushes the result to ghcr.io/mwudka/laser-map-editor:latest.
 A docker-compose file in `./production/` defines services for postgis, downloading the OSM planet file, loading it into 
 postgis, and running the server.
 
+To upload the files to a server, switch to the `./production/` directory and run something like:
+
+    rsync -azP . mwudka@100.73.115.42:lasographer
+
+Create a `.env` file with:
+
+    AWS_ACCESS_KEY=
+    AWS_SECRET_ACCESS_KEY=
+
 ## OSM import process
 
 First, download the latest planet data:

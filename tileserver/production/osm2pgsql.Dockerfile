@@ -1,9 +1,8 @@
 # DOCKER-VERSION 1.5.0
 # VERSION 0.2
-# Based on https://github.com/openfirmware/docker-osm2pgsql
+# Based on https://github.com/openfirmware/docker-osm2pgsql by James Badger <james@jamesbadger.ca>
 
 FROM debian:buster
-MAINTAINER James Badger <james@jamesbadger.ca>
 
 ENV DEBIAN_FRONTEND noninteractive
 
