@@ -104,13 +104,6 @@ func fileExists(path string) bool {
 //go:embed frontend/build
 var frontend embed.FS
 
-type Handler struct{}
-
-func (h Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	w.WriteHeader(http.StatusOK)
-	w.Write([]byte("hello from simplecert!"))
-}
-
 // This example demonstrates how spin up a custom HTTPS webserver for production deployment.
 // It shows how to configure and start your service in a way that the certificate can be automatically renewed via the TLS challenge, before it expires.
 // For this to succeed, we need to temporarily free port 443 (on which your service is running) and complete the challenge.
@@ -118,10 +111,48 @@ func (h Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 // Requests to port 80 will always be redirected to the TLS secured version of your site.
 func main() {
 
+	var err error
+	if fileExists(".env") {
+		if err = godotenv.Load(".env"); err != nil {
+			log.Fatal(err)
+		}
+	}
+
+	if fileExists(".env.development.local") {
+		if err = godotenv.Load(".env.development.local"); err != nil {
+			log.Fatal(err)
+		}
+	}
+
+	dbConnectionString := os.Getenv("TILESERVER_DB_CONNECTION_STRING")
+	if "" == dbConnectionString {
+		log.Fatal("No connection string set in env var TILESERVER_DB_CONNECTION_STRING")
+	}
+
+	pool, err = pgxpool.Connect(context.Background(), dbConnectionString)
+
+	if err != nil {
+		panic(err)
+	}
+	defer pool.Close()
+
+	r := chi.NewRouter()
+	r.Use(middleware.Logger)
+
+	r.Get("/api/v1/tile/{z}/{x}/{y}", Tile)
+
+	var staticFS = http.FS(frontend)
+	fs := http.FileServer(staticFS)
+
+	r.Get("/*", func(writer http.ResponseWriter, request *http.Request) {
+		request.URL.Path = "/frontend/build/" + request.URL.Path
+
+		fs.ServeHTTP(writer, request)
+	})
+
 	var (
 		// the structure that handles reloading the certificate
 		certReloader *simplecert.CertReloader
-		err          error
 		numRenews    int
 		ctx, cancel  = context.WithCancel(context.Background())
 
@@ -133,7 +164,7 @@ func main() {
 		makeServer = func() *http.Server {
 			return &http.Server{
 				Addr:      ":8443",
-				Handler:   Handler{},
+				Handler:   r,
 				TLSConfig: tlsConf,
 			}
 		}
@@ -226,71 +257,4 @@ func serve(ctx context.Context, srv *http.Server) {
 	} else if err != nil {
 		log.Printf("server encountered an error on exit: %+s\n", err)
 	}
-}
-
-func mmain() {
-	var err error
-	if fileExists(".env") {
-		if err = godotenv.Load(".env"); err != nil {
-			log.Fatal(err)
-		}
-	}
-
-	if fileExists(".env.development.local") {
-		if err = godotenv.Load(".env.development.local"); err != nil {
-			log.Fatal(err)
-		}
-	}
-
-	dbConnectionString := os.Getenv("TILESERVER_DB_CONNECTION_STRING")
-	if "" == dbConnectionString {
-		log.Fatal("No connection string set in env var TILESERVER_DB_CONNECTION_STRING")
-	}
-
-	pool, err = pgxpool.Connect(context.Background(), dbConnectionString)
-
-	if err != nil {
-		panic(err)
-	}
-	defer pool.Close()
-
-	r := chi.NewRouter()
-	r.Use(middleware.Logger)
-
-	r.Get("/api/v1/tile/{z}/{x}/{y}", Tile)
-
-	var staticFS = http.FS(frontend)
-	fs := http.FileServer(staticFS)
-
-	r.Get("/*", func(writer http.ResponseWriter, request *http.Request) {
-		request.URL.Path = "/frontend/build/" + request.URL.Path
-
-		fs.ServeHTTP(writer, request)
-	})
-
-	//go http.ListenAndServe("0.0.0.0:8082", r)
-	http.ListenAndServe("0.0.0.0:8082", r)
-	//
-	//simplecertCfg := simplecert.Default
-	//simplecertCfg.Domains = []string{"lasographer.com", "www.lasographer.com"}
-	//simplecertCfg.CacheDir = "./letsencrypt"
-	//simplecertCfg.SSLEmail = "mwudka@gmail.com"
-	//simplecertCfg.DNSProvider = "route53"
-	//simplecertCfg.HTTPAddress = ""
-	//certReloader, err := simplecert.Init(simplecertCfg, nil)
-	//if err != nil {
-	//	log.Fatal("simplecert init failed: ", err)
-	//}
-	//
-	//tlsConfig := tlsconfig.NewServerTLSConfig(tlsconfig.TLSModeServerStrict)
-	//tlsConfig.GetCertificate = certReloader.GetCertificateFunc()
-	//
-	//tlsServer := &http.Server{
-	//	Addr:      "0.0.0.0:8443",
-	//	Handler:   r,
-	//	ErrorLog:  log.Default(),
-	//	TLSConfig: tlsConfig,
-	//}
-	//
-	//log.Fatal(tlsServer.ListenAndServeTLS("", ""))
 }

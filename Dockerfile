@@ -7,7 +7,7 @@ RUN npm ci && npm run build
 FROM golang:1.17 as go
 WORKDIR /go/src/app
 COPY tileserver .
-COPY --from=node / frontend/
+COPY --from=node /build frontend/build
 RUN GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -o tileserver-linux-amd64
 
 
@@ -19,6 +19,6 @@ FROM scratch
 
 COPY --from=alpine /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/
 
-COPY --from=go tileserver-linux-amd64 /tileserver-linux-amd64
+COPY --from=go /go/src/app/tileserver-linux-amd64 /tileserver-linux-amd64
 
 ENTRYPOINT [ "/tileserver-linux-amd64" ]
