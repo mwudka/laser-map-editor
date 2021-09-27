@@ -150,6 +150,15 @@ func main() {
 		fs.ServeHTTP(writer, request)
 	})
 
+	servingMode := os.Getenv("TILESERVER_SERVING_MODE")
+	if servingMode == "letsencrypt" {
+		serveLetsencryptTLS(r)
+	} else {
+		log.Fatal(http.ListenAndServe(":8082", r))
+	}
+}
+
+func serveLetsencryptTLS(handler http.Handler) {
 	var (
 		// the structure that handles reloading the certificate
 		certReloader *simplecert.CertReloader
@@ -164,7 +173,7 @@ func main() {
 		makeServer = func() *http.Server {
 			return &http.Server{
 				Addr:      ":8443",
-				Handler:   r,
+				Handler:   handler,
 				TLSConfig: tlsConf,
 			}
 		}
@@ -211,7 +220,7 @@ func main() {
 	// init simplecert configuration
 	// this will block initially until the certificate has been obtained for the first time.
 	// on subsequent runs, simplecert will load the certificate from the cache directory on disk.
-	certReloader, err = simplecert.Init(cfg, func() {
+	certReloader, err := simplecert.Init(cfg, func() {
 		os.Exit(0)
 	})
 	if err != nil {

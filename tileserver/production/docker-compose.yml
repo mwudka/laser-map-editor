@@ -33,6 +33,7 @@ services:
     image: ghcr.io/mwudka/laser-map-editor:latest
     environment:
       TILESERVER_DB_CONNECTION_STRING: postgres://osm_planet:osm@postgis:5432/osm_planet
+      TILESERVER_SERVING_MODE: letsencrypt
     volumes:
       - letsencrypt:/letsencrypt
       - ./.env:/.env
