@@ -5,7 +5,8 @@ import (
 	"embed"
 	"fmt"
 	"github.com/joho/godotenv"
-	"log"
+	"github.com/rs/zerolog"
+	"github.com/rs/zerolog/hlog"
 	"math"
 	"net/http"
 	"os"
@@ -15,24 +16,32 @@ import (
 	"github.com/jackc/pgx/v4/pgxpool"
 	_ "github.com/lib/pq"
 
-	"github.com/go-chi/chi/v5"
-	"github.com/go-chi/chi/v5/middleware"
-
 	"github.com/foomo/simplecert"
 	"github.com/foomo/tlsconfig"
+	"github.com/go-chi/chi/v5"
+
+	"github.com/rs/zerolog/log"
 )
 
 var pool *pgxpool.Pool
 
 func Tile(w http.ResponseWriter, r *http.Request) {
+	logger := log.With().Logger()
+	if id, ok := hlog.IDFromRequest(r); ok {
+		logger = logger.With().Str("req_id", id.String()).Logger()
+	}
+
 	// TODO: Handle non-int requests
-	z, _ := strconv.Atoi(chi.URLParam(r, "z"))
-	x, _ := strconv.Atoi(chi.URLParam(r, "x"))
-	y, _ := strconv.Atoi(chi.URLParam(r, "y"))
+	rawZ := chi.URLParam(r, "z")
+	rawX := chi.URLParam(r, "x")
+	rawY := chi.URLParam(r, "y")
+	logger = logger.With().Str("x", rawX).Str("y", rawY).Str("z", rawZ).Logger()
+	z, _ := strconv.Atoi(rawZ)
+	x, _ := strconv.Atoi(rawX)
+	y, _ := strconv.Atoi(rawY)
 
+	// TODO: Should this be here? Maybe only in Dev?
 	w.Header().Set("Access-Control-Allow-Origin", "*")
-
-	fmt.Printf("Processing request z=%d x=%d y=%d\n", z, x, y)
 
 	//# Width of world in EPSG:3857
 	worldMercMax := 20037508.3427892
@@ -71,27 +80,30 @@ WITH
             )
             SELECT ST_AsMVT(mvtgeom.*, 'default', 4096, 'geom', 'id') FROM mvtgeom`, boundsSql, boundsSql)
 
-	fmt.Printf("Query:\n%s\n", query)
+	logger.Debug().Str("query", query).Msg("Starting tile query")
 
-	start := time.Now()
+	queryStart := time.Now()
 	row := pool.QueryRow(r.Context(), query)
 
 	if row == nil {
-		fmt.Printf("Error running query\n")
+		logger.Error().Msg("Error running query")
 		w.WriteHeader(500)
 		return
 	}
-	queryDuration := time.Since(start)
+	queryDuration := time.Since(queryStart)
+	logger = logger.With().Dur("queryDuration", queryDuration).Logger()
 
+	scanStart := time.Now()
 	var mvt []byte
 	if err := row.Scan(&mvt); err != nil {
-		fmt.Printf("Error scanning row %v\n", err)
+		logger.Error().Err(err).Msg("Error scanning row")
 		w.WriteHeader(500)
 		return
 	}
-	queryScanDuration := time.Since(start)
+	queryScanDuration := time.Since(scanStart)
+	logger = logger.With().Dur("scanDuration", queryScanDuration).Logger()
+	logger.Info().Msg("Query succeeded")
 
-	fmt.Printf("Query %s Query + scan %s\n", queryDuration, queryScanDuration)
 	w.WriteHeader(200)
 	w.Write(mvt)
 }
@@ -110,23 +122,26 @@ var frontend embed.FS
 // Once the challenge has been completed the service will be restarted via the DidRenewCertificate hook.
 // Requests to port 80 will always be redirected to the TLS secured version of your site.
 func main() {
-
 	var err error
-	if fileExists(".env") {
-		if err = godotenv.Load(".env"); err != nil {
-			log.Fatal(err)
+
+	// Need to loop through files rather than passing them all to godotenv.Load to tolerate missing files.
+	// godotenv.Load errors if any files are missing, which is annoying for optional development files
+	dotEnvFiles := []string{".env", ".env.development", ".env.development.local"}
+	for _, envFile := range dotEnvFiles {
+		if fileExists(envFile) {
+			if err = godotenv.Load(envFile); err != nil {
+				log.Fatal().Err(err).Msgf("Unable to load %s", envFile)
+			}
 		}
 	}
 
-	if fileExists(".env.development.local") {
-		if err = godotenv.Load(".env.development.local"); err != nil {
-			log.Fatal(err)
-		}
+	if os.Getenv("TILESERVER_LOG_FORMAT") == "pretty" {
+		log.Logger = log.Output(zerolog.ConsoleWriter{Out: os.Stderr})
 	}
 
 	dbConnectionString := os.Getenv("TILESERVER_DB_CONNECTION_STRING")
 	if "" == dbConnectionString {
-		log.Fatal("No connection string set in env var TILESERVER_DB_CONNECTION_STRING")
+		log.Fatal().Msg("No connection string set in env var TILESERVER_DB_CONNECTION_STRING")
 	}
 
 	pool, err = pgxpool.Connect(context.Background(), dbConnectionString)
@@ -137,7 +152,20 @@ func main() {
 	defer pool.Close()
 
 	r := chi.NewRouter()
-	r.Use(middleware.Logger)
+	r.Use(hlog.NewHandler(log.Logger))
+	r.Use(hlog.AccessHandler(func(r *http.Request, status, size int, duration time.Duration) {
+		hlog.FromRequest(r).Info().
+			Str("method", r.Method).
+			Str("url", r.URL.String()).
+			Int("status", status).
+			Int("size", size).
+			Dur("duration", duration).
+			Msg("")
+	}))
+	r.Use(hlog.RemoteAddrHandler("ip"))
+	r.Use(hlog.UserAgentHandler("user_agent"))
+	r.Use(hlog.RefererHandler("referer"))
+	r.Use(hlog.RequestIDHandler("req_id", "Request-Id"))
 
 	r.Get("/api/v1/tile/{z}/{x}/{y}", Tile)
 
@@ -154,7 +182,13 @@ func main() {
 	if servingMode == "letsencrypt" {
 		serveLetsencryptTLS(r)
 	} else {
-		log.Fatal(http.ListenAndServe(":8082", r))
+		addr := ":8082"
+		log.Info().Msgf("Starting dev mode server on %s", addr)
+		if err = http.ListenAndServe(addr, r); err != nil {
+			log.Fatal().Err(err).Msg("Error in HTTP server")
+		} else {
+			log.Info().Msg("Shutdown gracefully")
+		}
 	}
 }
 
@@ -224,21 +258,21 @@ func serveLetsencryptTLS(handler http.Handler) {
 		os.Exit(0)
 	})
 	if err != nil {
-		log.Fatal("simplecert init failed: ", err)
+		log.Fatal().Err(err).Msg("simplecert init failed")
 	}
 
 	// redirect HTTP to HTTPS
-	log.Println("starting HTTP Listener on Port 80")
-	go http.ListenAndServe(":8082", http.HandlerFunc(simplecert.Redirect))
+	log.Info().Msgf("starting HTTP Listener on %s", cfg.HTTPAddress)
+	go http.ListenAndServe(cfg.HTTPAddress, http.HandlerFunc(simplecert.Redirect))
 
 	// enable hot reload
 	tlsConf.GetCertificate = certReloader.GetCertificateFunc()
 
 	// start serving
-	log.Println("will serve at: https://" + cfg.Domains[0])
+	log.Info().Msgf("will serve at: https://%s", cfg.Domains[0])
 	serve(ctx, srv)
 
-	fmt.Println("waiting forever")
+	log.Info().Msg("waiting forever")
 	<-make(chan bool)
 }
 
@@ -247,13 +281,13 @@ func serve(ctx context.Context, srv *http.Server) {
 	// lets go
 	go func() {
 		if err := srv.ListenAndServeTLS("", ""); err != nil && err != http.ErrServerClosed {
-			log.Fatalf("listen: %+s\n", err)
+			log.Fatal().Err(err).Msg("TLS listen failed")
 		}
 	}()
 
-	log.Printf("server started")
+	log.Info().Msg("server started")
 	<-ctx.Done()
-	log.Printf("server stopped")
+	log.Info().Msg("server stopped")
 
 	ctxShutDown, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer func() {
@@ -262,8 +296,8 @@ func serve(ctx context.Context, srv *http.Server) {
 
 	err := srv.Shutdown(ctxShutDown)
 	if err == http.ErrServerClosed {
-		log.Printf("server exited properly")
+		log.Info().Msg("server exited properly")
 	} else if err != nil {
-		log.Printf("server encountered an error on exit: %+s\n", err)
+		log.Error().Err(err).Msg("server encountered an error on exit")
 	}
 }

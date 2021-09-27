@@ -10,6 +10,7 @@ require (
 	github.com/jackc/pgx/v4 v4.9.2
 	github.com/joho/godotenv v1.3.0
 	github.com/lib/pq v1.9.0
+	github.com/rs/zerolog v1.15.0
 	github.com/smartystreets/assertions v0.0.0-20190116191733-b6c0e53d7304 // indirect
 	go.uber.org/atomic v1.7.0 // indirect
 )
