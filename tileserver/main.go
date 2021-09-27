@@ -40,9 +40,6 @@ func Tile(w http.ResponseWriter, r *http.Request) {
 	x, _ := strconv.Atoi(rawX)
 	y, _ := strconv.Atoi(rawY)
 
-	// TODO: Should this be here? Maybe only in Dev?
-	w.Header().Set("Access-Control-Allow-Origin", "*")
-
 	//# Width of world in EPSG:3857
 	worldMercMax := 20037508.3427892
 	worldMercMin := -1 * worldMercMax
