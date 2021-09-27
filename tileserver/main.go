@@ -74,7 +74,7 @@ WITH
 	fmt.Printf("Query:\n%s\n", query)
 
 	start := time.Now()
-	row := pool.QueryRow(context.Background(), query)
+	row := pool.QueryRow(r.Context(), query)
 
 	if row == nil {
 		fmt.Printf("Error running query\n")
