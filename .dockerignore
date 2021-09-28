@@ -1,0 +1,5 @@
+.idea
+tileserver/frontend/build
+tileserver/frontend/node_modules
+tileserver/production
+.git/objects

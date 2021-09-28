@@ -15,10 +15,23 @@ body,
 	bottom  : 0;
 	display : grid;
 	grid-template-areas:
+		"title        title"
 		"toolbar 	  toolbar"
 		"style-editor map";
-	grid-template-rows   : 3rem 1fr;
+	grid-template-rows   : 3rem 3rem 1fr;
 	grid-template-columns: 30rem 1fr;
+}
+
+#app>#title {
+	grid-area: title;
+}
+
+#title h1 {
+	font-style: italic;
+	text-decoration: underline;
+	padding: 0.5rem 1rem;
+	margin: 0;
+	display: inline;
 }
 
 #app>#toolbar {

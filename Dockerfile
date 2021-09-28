@@ -2,6 +2,8 @@ FROM node:14-alpine as node
 
 
 COPY tileserver/frontend .
+ARG BUILD_INFO=docker-build
+ENV REACT_APP_BUILD_INFO ${BUILD_INFO}
 RUN npm ci && npm run build
 
 FROM golang:1.17 as go

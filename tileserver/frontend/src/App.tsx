@@ -4,6 +4,7 @@ import MapboxGeocoder from '@mapbox/mapbox-gl-geocoder'
 import './App.css'
 import './Resizer.css'
 import Exporter from './Exporter'
+import BuildInfo from './BuildInfo'
 import StyleEditor, { FillStyle, LineStyle, StyleDef, StyleFilter, StyleRule } from './StyleEditor'
 import compileMapboxStyle from './compileMapboxStyle'
 import ReactDOM from 'react-dom'
@@ -282,7 +283,11 @@ function App() {
 
   return (
     <div id="app">
-      <div id="toolbar">
+      <div id="title">
+        <h1>Lasographer</h1>
+        <BuildInfo/>
+      </div>
+      <div id="toolbar">        
         {stateMap && <Exporter map={stateMap} style={style}></Exporter>}
       </div>
       <div id="style-editor" className="hide-scrollbar">
