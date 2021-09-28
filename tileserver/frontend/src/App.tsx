@@ -37,6 +37,11 @@ function App() {
     savedPOIs: [],
     rules: [
       {
+        id: 'default-coastline-rule',
+        filter: new StyleFilter('natural', 'coastline'),
+        lineStyle: new LineStyle(2, '#111111', false),
+      },
+      {
         id: 'default-highway-rule',
         filter: new StyleFilter('highway'),
         lineStyle: new LineStyle(2, '#444444', false),
