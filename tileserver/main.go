@@ -11,6 +11,7 @@ import (
 	"net/http"
 	"os"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/jackc/pgx/v4/pgxpool"
@@ -159,9 +160,6 @@ func main() {
 			Dur("duration", duration).
 			Msg("")
 	}))
-	r.Use(hlog.RemoteAddrHandler("ip"))
-	r.Use(hlog.UserAgentHandler("user_agent"))
-	r.Use(hlog.RefererHandler("referer"))
 	r.Use(hlog.RequestIDHandler("req_id", "Request-Id"))
 
 	r.Get("/api/v1/tile/{z}/{x}/{y}", Tile)
@@ -245,6 +243,10 @@ func serveLetsencryptTLS(handler http.Handler) {
 		go serve(ctx, srv)
 	}
 
+	cfg.FailedToRenewCertificate = func(err error) {
+		log.Error().Err(err).Msg("Failed to renew certificate")
+	}
+
 	cfg.HTTPAddress = ":8082"
 	cfg.TLSAddress = ":8443"
 
@@ -260,7 +262,16 @@ func serveLetsencryptTLS(handler http.Handler) {
 
 	// redirect HTTP to HTTPS
 	log.Info().Msgf("starting HTTP Listener on %s", cfg.HTTPAddress)
-	go http.ListenAndServe(cfg.HTTPAddress, http.HandlerFunc(simplecert.Redirect))
+	go http.ListenAndServe(cfg.HTTPAddress, http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
+		target := "https://" + strings.TrimPrefix(req.Host, "www.") + req.URL.Path
+		if len(req.URL.RawQuery) > 0 {
+			target += "?" + req.URL.RawQuery
+		}
+
+		log.Debug().Msgf("Redirecting http request to %s to %s", req.Host, target)
+
+		http.Redirect(w, req, target, http.StatusTemporaryRedirect)
+	}))
 
 	// enable hot reload
 	tlsConf.GetCertificate = certReloader.GetCertificateFunc()
