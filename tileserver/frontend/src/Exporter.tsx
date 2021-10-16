@@ -3,6 +3,10 @@ import { Expression } from './expression'
 import { mapStyleRules, StyleDef } from './StyleEditor'
 /* eslint import/no-webpack-loader-syntax: off */
 import layouts from '!!./makiLoader.js!./makiLoader.js'
+import Modal from 'react-modal';
+import { useState } from 'react';
+
+Modal.setAppElement('#root');
 
 export default function Exporter({
   map,
@@ -123,5 +127,60 @@ export default function Exporter({
     URL.revokeObjectURL(el.href)
   }
 
-  return <button onClick={exportMap}>Export</button>
+  const [modalIsOpen, setModalIsOpen] = useState(false);
+
+  function closeModal() {
+    setModalIsOpen(true);
+  }
+
+  function openModal() {
+    setModalIsOpen(true);
+  }
+
+  function finishExport() {
+    exportMap();
+    setModalIsOpen(false);
+  }
+
+  return <span>
+    <Modal 
+      isOpen={modalIsOpen}
+      onRequestClose={closeModal}
+      style={{
+        content: {
+          top: '50%',
+          left: '50%',
+          right: 'auto',
+          bottom: 'auto',
+          marginRight: '-50%',
+          transform: 'translate(-50%, -50%)',
+          textAlign: 'center',
+        },        
+      }}
+      contentLabel="Export Info"
+      >
+        <div style={{width: '300px'}}>
+          <h1>Important Attribution Notice</h1>
+          <p style={{textAlign: 'left'}}>
+            Lasographer's geographic data is provided by OpenStreetMap. This community-run 
+            project generously provides free, high quality map data. All they ask in return is that
+            users of the data credit it appropriately. This means including text
+            on the finished product that credits OpenStreetMap and links to the license
+            page. For more information on how to comply with this requirement, refer
+            to the <a href="https://wiki.osmfoundation.org/wiki/Licence/Attribution_Guidelines#Artwork.2C_household_goods.2C_and_clothing" target="_blank" rel="noreferrer">OSM attribution guidelines</a>.
+          </p>
+          <p>
+            Sample attribution text:
+          </p>
+          <p style={{
+            backgroundColor: '#999999'
+          }}>
+            © OpenStreetMap contributors<br/>
+            openstreetmap.org/copyright
+          </p>
+          <button onClick={finishExport}>Export Design. I will add the attribution text.</button>
+        </div>
+    </Modal>
+    <button onClick={openModal}>Export</button>
+  </span>
 }
