@@ -3,6 +3,8 @@ module tileserver
 go 1.16
 
 require (
+	github.com/didip/tollbooth/v6 v6.0.1
+	github.com/didip/tollbooth_chi v0.0.0-20200828173446-a7173453ea21
 	github.com/foomo/simplecert v1.8.3
 	github.com/foomo/tlsconfig v0.0.0-20180418120404-b67861b076c9
 	github.com/go-chi/chi/v5 v5.0.2

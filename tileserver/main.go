@@ -4,6 +4,7 @@ import (
 	"context"
 	"embed"
 	"fmt"
+	"github.com/didip/tollbooth_chi"
 	"github.com/joho/godotenv"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/hlog"
@@ -17,10 +18,11 @@ import (
 	"github.com/jackc/pgx/v4/pgxpool"
 	_ "github.com/lib/pq"
 
+	"github.com/didip/tollbooth/v6"
+	"github.com/didip/tollbooth/v6/limiter"
 	"github.com/foomo/simplecert"
 	"github.com/foomo/tlsconfig"
 	"github.com/go-chi/chi/v5"
-
 	"github.com/rs/zerolog/log"
 )
 
@@ -150,6 +152,20 @@ func main() {
 	defer pool.Close()
 
 	r := chi.NewRouter()
+
+	maxRequestsPerSecond, err := strconv.ParseFloat(os.Getenv("TILESERVER_MAX_REQUESTS_PER_SECOND"), 64)
+	if err != nil {
+		maxRequestsPerSecond = 5
+	}
+
+	log.Info().Msg(fmt.Sprintf("Ratelimiter configured with max RPS %f", maxRequestsPerSecond))
+	lmt := tollbooth.NewLimiter(maxRequestsPerSecond, &limiter.ExpirableOptions{DefaultExpirationTTL: time.Hour})
+	lmt.SetIPLookups([]string{"RemoteAddr"})
+
+	lmt.SetOnLimitReached(func(w http.ResponseWriter, r *http.Request) {
+		log.Warn().Msg("Ratelimited request")
+	})
+
 	r.Use(hlog.NewHandler(log.Logger))
 	r.Use(hlog.AccessHandler(func(r *http.Request, status, size int, duration time.Duration) {
 		hlog.FromRequest(r).Info().
@@ -161,6 +177,7 @@ func main() {
 			Msg("")
 	}))
 	r.Use(hlog.RequestIDHandler("req_id", "Request-Id"))
+	r.Use(tollbooth_chi.LimitHandler(lmt))
 
 	r.Get("/api/v1/tile/{z}/{x}/{y}", Tile)
 
