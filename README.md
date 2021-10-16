@@ -18,6 +18,14 @@ and pushes the result to ghcr.io/mwudka/laser-map-editor:latest.
 A docker-compose file in `./production/` defines services for postgis, downloading the OSM planet file, loading it into 
 postgis, and running the server.
 
+It uses a readonly user:
+
+    CREATE ROLE tileserver LOGIN PASSWORD 'osm';
+    GRANT CONNECT ON DATABASE osm_planet TO tileserver;
+    GRANT USAGE ON SCHEMA public TO tileserver;
+    GRANT SELECT ON ALL TABLES IN SCHEMA public TO tileserver;
+    ALTER ROLE tileserver SET statement_timeout = 30000;
+
 To upload the files to a server, switch to the `./production/` directory and run something like:
 
     rsync -azP . mwudka@100.73.115.42:lasographer
