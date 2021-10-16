@@ -5,6 +5,8 @@ import { mapStyleRules, StyleDef } from './StyleEditor'
 import layouts from '!!./makiLoader.js!./makiLoader.js'
 import Modal from 'react-modal';
 import { useState } from 'react';
+import bboxClip from '@turf/bbox-clip'
+
 
 Modal.setAppElement('#root');
 
@@ -12,7 +14,7 @@ export default function Exporter({
   map,
   style,
 }: {
-  map: mapboxgl.Map
+  map: mapboxgl.Map,
   style: StyleDef
 }) {
   function exportMap() {
@@ -50,7 +52,10 @@ export default function Exporter({
             group: SVGContainer,
             coordinates: GeoJSON.Position[]
           ) {
-            let pathString = featureToLineString(coordinates)
+            let pathString = featureToLineString(coordinates).trim();
+            if (!pathString) {
+              return;
+            }
 
             // If filling, we need to close the path so that it renders properly
             if (rule.fillStyle) {
@@ -69,29 +74,32 @@ export default function Exporter({
             }
           }
 
-          switch (feature.geometry.type) {
-            case 'LineString':
-              renderFeature(group, feature.geometry.coordinates)
-              break
-            case 'Polygon':
-            case 'MultiLineString':
-              const compoundGeometryGroup = group.group()
-              feature.geometry.coordinates.forEach((c) =>
-                renderFeature(compoundGeometryGroup, c)
-              )
-              break
-            case 'MultiPolygon':
-              const multiPolygonGroup = group.group()
-              feature.geometry.coordinates.forEach((polygon) =>
-                polygon.forEach(c => renderFeature(multiPolygonGroup, c))
-              )
-              break
-            case 'Point':
-              // TODO: Add support for exporting points
-              break
-            default:
-              // TODO: Add support for other geometry types
-              console.log('Unsupported geometry', feature.geometry)
+          // TODO: Add support for Point/MultiPoint/GeometryCollection types
+          if (feature.geometry.type !== 'Point' && feature.geometry.type !== 'MultiPoint' && feature.geometry.type !== 'GeometryCollection') {
+            const bounds = map.getBounds();
+            const clippedGeometry = bboxClip(feature.geometry, [bounds.getWest(), bounds.getSouth(), bounds.getEast(), bounds.getNorth()])
+
+            
+            switch(clippedGeometry.geometry.type) {
+              case 'LineString':
+                renderFeature(group, clippedGeometry.geometry.coordinates)
+                break;
+              case 'Polygon':
+              case 'MultiLineString':
+                const compoundGeometryGroup = group.group()
+                clippedGeometry.geometry.coordinates.forEach(c => renderFeature(compoundGeometryGroup, c))
+                break;
+              case 'MultiPolygon':
+                const multiPolygonGroup = group.group()
+                clippedGeometry.geometry.coordinates.forEach((polygon) =>
+                  polygon.forEach(c => renderFeature(multiPolygonGroup, c))
+                )
+                break
+
+              default:
+                // TODO: Add support for other geometry types
+                console.log('Unsupported geometry', clippedGeometry.geometry)
+            }
           }
         })
     })
