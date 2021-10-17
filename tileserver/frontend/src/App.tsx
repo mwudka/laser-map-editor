@@ -236,6 +236,9 @@ function App() {
         accessToken: mapboxgl.accessToken,
         mapboxgl: map,
         marker: false,
+        flyTo: {
+          animate: false,
+        },
       })
     )
 
