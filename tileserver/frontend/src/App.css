@@ -15,15 +15,20 @@ body,
 	bottom  : 0;
 	display : grid;
 	grid-template-areas:
-		"title        title"
-		"toolbar 	  toolbar"
-		"style-editor map";
-	grid-template-rows   : 3rem 3rem 1fr;
+		"title         title"
+		"toolbar 	   toolbar"
+		"style-editor  map"
+		"about-section map";
+	grid-template-rows   : 3rem 3rem 1fr 4rem;
 	grid-template-columns: 30rem 1fr;
 }
 
 #app>#title {
 	grid-area: title;
+}
+
+#app>#about {
+	grid-area: about-section;
 }
 
 #title h1 {

@@ -285,7 +285,7 @@ function App() {
     <div id="app">
       <div id="title">
         <h1>Lasographer</h1>
-        <BuildInfo/>
+        
       </div>
       <div id="toolbar">        
         {stateMap && <Exporter map={stateMap} style={style}></Exporter>}
@@ -294,6 +294,13 @@ function App() {
         <StyleEditor style={style} onStyleChange={onStyleChange} onRuleDelete={onRuleDelete} onRuleReorder={onRuleReorder} />
       </div>
       <div ref={mapContainer} className="mapContainer" />
+      <div id="about">
+        <a target="_blank" href="https://icons8.com/icon/2311/laser-beam" rel="noreferrer">Favicon Laser Beam</a> icon by <a target="_blank" href="https://icons8.com" rel="noreferrer">Icons8</a>
+        <br/>
+        Map data © <a target="_blank" rel="noreferrer" href="https://openstreetmap.org/copyright">OpenStreetMap</a>
+        <br/>
+        <BuildInfo/>        
+      </div>
     </div>
   )
 }
