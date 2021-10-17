@@ -81,3 +81,14 @@ body,
 	border-radius   : 10px;
 	border          : 5px solid white;
 }
+
+/* By default, the MapBox geocoder leaves a small gap between
+the search box and suggestions list. This is very annoying, because
+moving the mouse cursor into the gap usually dismisses the suggestion
+list. To avoid that, this CSS rule removes the gap so that it's always
+possible to move the mouse cursor from the query box to the suggestions 
+list.
+*/
+.mapboxgl-ctrl-geocoder .suggestions {
+	top: 100%;
+}
