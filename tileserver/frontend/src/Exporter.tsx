@@ -6,6 +6,8 @@ import layouts from '!!./makiLoader.js!./makiLoader.js'
 import Modal from 'react-modal';
 import { useState } from 'react';
 import bboxClip from '@turf/bbox-clip'
+import simplify from '@turf/simplify'
+import area from '@turf/area'
 
 
 Modal.setAppElement('#root');
@@ -77,8 +79,8 @@ export default function Exporter({
           // TODO: Add support for Point/MultiPoint/GeometryCollection types
           if (feature.geometry.type !== 'Point' && feature.geometry.type !== 'MultiPoint' && feature.geometry.type !== 'GeometryCollection') {
             const bounds = map.getBounds();
-            const clippedGeometry = bboxClip(feature.geometry, [bounds.getWest(), bounds.getSouth(), bounds.getEast(), bounds.getNorth()])
 
+            const clippedGeometry = bboxClip(feature.geometry, [bounds.getWest(), bounds.getSouth(), bounds.getEast(), bounds.getNorth()])
             
             switch(clippedGeometry.geometry.type) {
               case 'LineString':
